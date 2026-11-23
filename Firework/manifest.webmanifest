@@ -1,0 +1,18 @@
+{
+  "name": "나의 불꽃놀이",
+  "short_name": "불꽃놀이",
+  "description": "화면을 누르면 그 자리에서 불꽃이 터지는 나만의 가상 불꽃놀이",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0b1033",
+  "background_color": "#0b1033",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

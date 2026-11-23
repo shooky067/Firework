@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>나의 불꽃놀이</title>
+<meta name="description" content="화면을 누르면 그 자리에서 불꽃이 터지는 나만의 가상 불꽃놀이">
+<meta name="theme-color" content="#0b1033">
+<meta name="color-scheme" content="dark light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="불꽃놀이">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./icons/favicon.svg">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<script>
+/* 첫 화면 깜빡임 방지: CSS보다 먼저 테마 적용 */
+(function(){var p='system';try{var s=JSON.parse(localStorage.getItem('nfw.settings')||'{}');if(s&&(s.theme==='light'||s.theme==='dark'||s.theme==='system'))p=s.theme;}catch(e){}
+var m=false;try{m=window.matchMedia('(prefers-color-scheme: light)').matches;}catch(e){}
+var r=document.documentElement;r.setAttribute('data-theme',p==='system'?(m?'light':'dark'):p);r.setAttribute('data-theme-pref',p);})();
+</script>
+<style>
+:root{
+  --font:"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --night:#0b1033;
+  --radius:18px;
+  --lift:-2px; --hover-scale:1.08; --press:.97;
+  --t:.18s;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px);
+}
+:root[data-theme="dark"]{
+  --panel:rgba(14,18,48,.80); --panel-strong:rgba(18,22,58,.94);
+  --text:#eef0ff; --text-dim:#bcc2ea; --line:rgba(255,255,255,.15);
+  --btn:rgba(255,255,255,.09); --btn-hover:rgba(255,255,255,.18); --btn-active:rgba(255,255,255,.24);
+  --accent:#ffd84d; --accent-hover:#ffe57f; --on-accent:#1a1440; --accent-soft:rgba(255,216,77,.16);
+  --glow:0 0 18px rgba(255,216,77,.45); --glow-big:0 4px 26px rgba(255,216,77,.55);
+  --danger:#ff7a8e; --danger-bg:rgba(255,90,120,.14); --danger-hover:rgba(255,90,120,.28);
+  --focus:#ffe27a; --focus-halo:rgba(11,16,51,.9);
+  --scrim:rgba(3,5,20,.45); --input-bg:rgba(255,255,255,.08);
+}
+:root[data-theme="light"]{
+  --panel:rgba(248,248,255,.88); --panel-strong:rgba(250,250,255,.97);
+  --text:#16183a; --text-dim:#43476e; --line:rgba(20,24,70,.16);
+  --btn:rgba(20,24,70,.07); --btn-hover:rgba(20,24,70,.14); --btn-active:rgba(20,24,70,.2);
+  --accent:#5b25c9; --accent-hover:#6c39dc; --on-accent:#ffffff; --accent-soft:rgba(91,37,201,.12);
+  --glow:0 0 16px rgba(91,37,201,.35); --glow-big:0 4px 22px rgba(91,37,201,.4);
+  --danger:#9e0e32; --danger-bg:rgba(180,18,58,.08); --danger-hover:rgba(180,18,58,.16);
+  --focus:#4a14c0; --focus-halo:rgba(255,255,255,.95);
+  --scrim:rgba(3,5,20,.30); --input-bg:rgba(255,255,255,.85);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--night);overscroll-behavior:none}
+body{font-family:var(--font);font-weight:400;line-height:1.6;color:var(--text);-webkit-font-smoothing:antialiased;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font-family:var(--font);font-size:16px;color:inherit}
+h2,h3{font-weight:700;margin:0}
+strong,b{font-weight:600}
+.num,time,.tabular{font-variant-numeric:tabular-nums}
+#sky{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;background:var(--night)}
+.glass{background:var(--panel);-webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid var(--line);box-shadow:0 8px 30px rgba(0,0,0,.35);color:var(--text)}
+
+/* ===== 버튼 공통 ===== */
+button{cursor:pointer;border:0;background:none;margin:0;padding:0;
+  transition:background-color var(--t),box-shadow var(--t),transform var(--t),color var(--t),border-color var(--t),opacity var(--t)}
+button:disabled{opacity:.42;cursor:not-allowed;box-shadow:none!important;transform:none!important}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 4px var(--focus-halo)}
+.btn{min-height:44px;padding:10px 16px;border-radius:14px;background:var(--btn);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:1.2}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.danger{background:var(--danger-bg);color:var(--danger)}
+.btn.block{width:100%}
+.btn:not(:disabled):active{transform:scale(var(--press));background:var(--btn-active)}
+.btn.primary:not(:disabled):active{background:var(--accent)}
+.ibtn{width:44px;height:44px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--text);position:relative}
+.ibtn svg{width:22px;height:22px;transition:transform var(--t)}
+.ibtn:not(:disabled):active{transform:scale(var(--press));background:var(--btn-active)}
+.ibtn.danger{color:var(--danger)}
+.ibtn.solid{background:var(--panel);border:1px solid var(--line);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+svg.i{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.f{fill:currentColor;stroke:none}
+
+/* ===== 가장자리 버튼 ===== */
+#edge{position:fixed;top:calc(var(--safe-t) + 10px);right:calc(var(--safe-r) + 10px);display:flex;gap:8px;z-index:20;transition:opacity .35s}
+#edge.hide{opacity:0;pointer-events:none}
+#fps{position:fixed;top:calc(var(--safe-t) + 12px);left:calc(var(--safe-l) + 12px);z-index:20;font:600 12px/1 var(--font);font-variant-numeric:tabular-nums;
+  color:#e8ecff;background:rgba(0,0,0,.4);padding:6px 8px;border-radius:8px;pointer-events:none}
+#rec{position:fixed;top:calc(var(--safe-t) + 10px);left:50%;transform:translateX(-50%);z-index:21;display:flex;align-items:center;gap:10px;padding:6px 6px 6px 14px;border-radius:999px}
+#rec .dot{width:10px;height:10px;border-radius:50%;background:#ff4d6a;box-shadow:0 0 10px #ff4d6a;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.3}}
+#playing{position:fixed;top:calc(var(--safe-t) + 10px);left:calc(var(--safe-l) + 10px);z-index:19;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;pointer-events:none;transition:opacity .35s}
+#playing.hide{opacity:0}
+
+/* ===== 조준점(PC) ===== */
+#aim{position:fixed;left:0;top:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .2s}
+#aim.on{opacity:1}
+#aim .x{position:absolute;left:-14px;top:-14px;width:28px;height:28px}
+#aim .x::before,#aim .x::after{content:"";position:absolute;background:rgba(255,236,170,.7);border-radius:2px}
+#aim .x::before{left:13px;top:0;width:2px;height:28px}
+#aim .x::after{top:13px;left:0;height:2px;width:28px}
+#aim .ring{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border:1.5px solid rgba(255,236,170,.55);border-radius:50%}
+#aim .lbl{position:absolute;left:16px;top:10px;white-space:nowrap;font-size:12px;font-weight:600;color:rgba(255,240,200,.8);text-shadow:0 1px 4px #000}
+
+/* ===== 카운트다운 ===== */
+#cd{position:fixed;left:50%;top:calc(var(--safe-t) + 64px);transform:translateX(-50%);z-index:6;text-align:center;pointer-events:none;color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.6),0 0 30px rgba(255,216,77,.35)}
+#cd .lbl{font-size:14px;font-weight:600;opacity:.85}
+#cd .big{font-size:clamp(40px,12vw,96px);font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+#cd.final .big{font-size:clamp(90px,34vw,240px)}
+
+/* ===== 하단 컨트롤 바 ===== */
+#bar{position:fixed;z-index:15;left:50%;transform:translateX(-50%);bottom:calc(var(--safe-b) + 8px);
+  width:min(680px,calc(100% - 16px - var(--safe-l) - var(--safe-r)));border-radius:22px;padding:8px}
+#bar .rows{display:flex;flex-direction:column;gap:6px}
+#bar.collapsed{width:auto;padding:4px}
+#bar.collapsed .rows{display:none}
+.row{display:flex;align-items:center;gap:6px}
+.scroll{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px}
+.scroll::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:52px;min-width:58px;padding:4px 8px;border-radius:14px;border:1.5px solid transparent;background:var(--btn);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:600;line-height:1.2;gap:2px}
+.chip svg{width:26px;height:26px}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.chip:not(:disabled):active{transform:scale(var(--press))}
+.chip .tw{transition:opacity .15s}
+.sw{flex:none;width:44px;height:44px;margin:2px;border-radius:50%;border:2px solid rgba(255,255,255,.25);position:relative;font-weight:700;color:#fff;font-size:15px;text-shadow:0 1px 3px #000}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--panel-strong),0 0 0 5px var(--accent)}
+.sw:not(:disabled):active{transform:scale(var(--press))}
+.actions{display:grid;grid-template-columns:1fr 44px 44px 44px;gap:6px;align-items:center}
+#autoBtn{justify-content:flex-start;min-width:0}
+#autoBtn .nm{font-weight:400;font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#autoBtn.on{background:var(--accent);color:var(--on-accent)}
+#autoBtn.on .nm{color:var(--on-accent);opacity:.85}
+.lbl-s{font-size:12px;color:var(--text-dim);font-weight:600;padding:0 4px;white-space:nowrap}
+#barToggle svg{transition:transform var(--t)}
+#bar.collapsed #barToggle svg{transform:rotate(180deg)}
+
+/* ===== 시트(메뉴) ===== */
+#scrim{position:fixed;inset:0;background:var(--scrim);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+#scrim.on{opacity:1;pointer-events:auto}
+#sheet{position:fixed;z-index:31;left:50%;bottom:0;width:min(560px,100%);max-height:min(88dvh,88vh);
+  transform:translate(-50%,105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);border-radius:24px 24px 0 0;
+  display:flex;flex-direction:column;padding-bottom:var(--safe-b);border-bottom:0}
+#sheet.on{transform:translate(-50%,0)}
+.sh-head{display:flex;align-items:center;gap:4px;padding:8px 8px 4px 8px;padding-left:calc(8px + var(--safe-l));padding-right:calc(8px + var(--safe-r))}
+.sh-head h2{flex:1;font-size:18px;text-align:center}
+#themeBtn{width:auto;padding:0 10px;border-radius:22px;gap:4px;font-size:13px;font-weight:600}
+#themeBtn .em{font-size:20px;line-height:1}
+.sh-body{overflow-y:auto;padding:8px 16px 20px;padding-left:calc(16px + var(--safe-l));padding-right:calc(16px + var(--safe-r));-webkit-user-select:text;user-select:text;overscroll-behavior:contain}
+.sh-body p{margin:.4em 0}
+.dim{color:var(--text-dim)}
+.small{font-size:13px}
+.sec{margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--text-dim)}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{display:flex;align-items:center;gap:8px;min-height:52px;padding:6px 6px 6px 14px;border-radius:14px;background:var(--btn);width:100%;text-align:left}
+.item .main{flex:1;min-width:0;display:flex;align-items:center;gap:8px;line-height:1.35;padding:4px 0;background:none;text-align:left;cursor:pointer;min-height:44px;border-radius:10px}
+.item .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.chip .c1{fill:var(--d1)}.chip .c2{fill:var(--d2)}.chip .c3{fill:var(--d3)}
+:root[data-theme="dark"]{--d1:#ffd84d;--d2:#ff6fae;--d3:#3ee6d2}
+:root[data-theme="light"]{--d1:#b67a00;--d2:#cc1f66;--d3:#078a7c}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.item .main .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .main .s{font-size:13px;color:var(--text-dim)}
+.item .play{opacity:.7;transition:opacity var(--t),transform var(--t);display:inline-flex}
+.item .play svg{width:20px;height:20px}
+.item.now{outline:1.5px solid var(--accent)}
+button.item:not(:disabled):active,.item .main:active{transform:scale(var(--press))}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.menu-grid .btn{min-height:64px;flex-direction:column;gap:2px;font-size:15px}
+.menu-grid .btn .e{font-size:22px;line-height:1}
+.field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.field label,.lab{font-weight:600;font-size:14px}
+input[type=text],input[type=datetime-local],select{min-height:44px;font-size:16px;border-radius:12px;border:1.5px solid var(--line);background:var(--input-bg);padding:8px 12px;width:100%;color:var(--text);transition:border-color var(--t),box-shadow var(--t)}
+select option{color:#111}
+input:focus-visible,select:focus-visible{border-color:var(--focus)}
+.set{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:4px 0;border-bottom:1px solid var(--line)}
+.set .d{flex:1;min-width:0}
+.set .d .s{display:block;font-size:13px;color:var(--text-dim);line-height:1.4}
+.tg{width:56px;height:44px;flex:none;position:relative;border-radius:22px}
+.tg::before{content:"";position:absolute;left:4px;top:8px;width:48px;height:28px;border-radius:14px;background:var(--btn-hover);transition:background-color var(--t),box-shadow var(--t)}
+.tg::after{content:"";position:absolute;left:8px;top:12px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform var(--t)}
+.tg[aria-checked="true"]::before{background:var(--accent)}
+.tg[aria-checked="true"]::after{transform:translateX(20px)}
+:root[data-theme="dark"] .tg[aria-checked="true"]::after{background:#1a1440}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--btn);padding:4px;border-radius:14px}
+.seg button{flex:1 1 auto;min-height:40px;min-width:52px;padding:6px 10px;border-radius:10px;font-weight:600;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.seg button:not(:disabled):active{transform:scale(var(--press))}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;cursor:pointer;flex:1}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--btn-hover)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--btn-hover)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:50%;background:var(--accent);border:2px solid #fff;transition:box-shadow var(--t),transform var(--t)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--accent);border:2px solid #fff;transition:box-shadow var(--t),transform var(--t)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(var(--press))}
+input[type=range]:focus-visible{outline-offset:-2px}
+.banner{border-radius:14px;padding:10px 12px;background:var(--accent-soft);border:1px solid var(--accent);margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.banner .row{flex-wrap:wrap}
+.counter{font-size:13px;color:var(--text-dim);text-align:right;font-variant-numeric:tabular-nums}
+.err{color:var(--danger);font-size:13px;font-weight:600;min-height:1.2em}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btnrow .btn{flex:1 1 140px}
+.colors{display:flex;gap:6px;flex-wrap:wrap}
+.empty{padding:14px;text-align:center;color:var(--text-dim);font-size:14px;border:1.5px dashed var(--line);border-radius:14px}
+.help h3{font-size:16px;margin-top:14px}
+.help ul{padding-left:20px;margin:.3em 0}
+.help li{margin:.2em 0}
+
+/* ===== 대화상자 / 토스트 ===== */
+#dlgWrap{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(3,5,20,.55);padding:16px}
+#dlgWrap.on{display:flex}
+#dlg{width:min(420px,100%);max-height:86dvh;overflow:auto;border-radius:20px;padding:18px;background:var(--panel-strong)}
+#dlg h3{font-size:18px;margin-bottom:6px}
+#dlg .body{margin:6px 0 14px;-webkit-user-select:text;user-select:text}
+#dlg .btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#dlg .btns .btn{flex:1 1 110px}
+#toast{position:fixed;z-index:60;left:50%;top:calc(var(--safe-t) + 66px);width:max-content;transform:translate(-50%,-12px);opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s;border-radius:16px;padding:8px 8px 8px 16px;display:flex;align-items:center;gap:8px;max-width:calc(100% - 24px);font-size:14px;font-weight:600}
+#toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#toast .btn{min-height:40px;padding:6px 12px;color:var(--accent)}
+#toast:not(.has-act){padding-right:16px;min-height:44px}
+
+/* ===== 호버 효과: 마우스 기기 전용 ===== */
+@media (hover:hover) and (pointer:fine){
+  .btn:not(:disabled):hover{background:var(--btn-hover);transform:translateY(var(--lift));box-shadow:var(--glow)}
+  .btn.primary:not(:disabled):hover{background:var(--accent-hover);box-shadow:var(--glow-big)}
+  .btn.danger:not(:disabled):hover{background:var(--danger-hover);box-shadow:0 0 16px rgba(255,90,120,.35)}
+  .ibtn:not(:disabled):hover{background:var(--btn-hover)}
+  .ibtn:not(:disabled):hover svg,.ibtn:not(:disabled):hover .em{transform:scale(var(--hover-scale))}
+  .ibtn.danger:not(:disabled):hover{background:var(--danger-hover);color:var(--danger)}
+  .chip:not(:disabled):hover{border-color:var(--accent);box-shadow:var(--glow)}
+  .chip:not(:disabled):hover .tw{animation:tw .7s infinite alternate}
+  .chip:not(:disabled):hover .tw:nth-child(2n){animation-delay:.2s}
+  .chip:not(:disabled):hover .tw:nth-child(3n){animation-delay:.4s}
+  .sw:not(:disabled):hover{box-shadow:0 0 0 3px var(--panel-strong),0 0 0 5px var(--btn-hover),0 0 16px rgba(255,255,255,.35);transform:scale(var(--hover-scale))}
+  .sw[aria-pressed="true"]:not(:disabled):hover{box-shadow:0 0 0 3px var(--panel-strong),0 0 0 5px var(--accent),0 0 16px rgba(255,255,255,.35)}
+  .item:hover{background:var(--btn-hover)}
+  .item .play{opacity:0}
+  .item:hover .play{opacity:1;transform:scale(var(--hover-scale))}
+  .seg button:not(:disabled):not([aria-pressed="true"]):hover{background:var(--btn-hover)}
+  .tg:not(:disabled):hover::before{box-shadow:var(--glow)}
+  input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 6px var(--accent-soft),var(--glow);transform:scale(var(--hover-scale))}
+  input[type=range]:hover::-moz-range-thumb{box-shadow:0 0 0 6px var(--accent-soft),var(--glow);transform:scale(var(--hover-scale))}
+  input[type=text]:hover,input[type=datetime-local]:hover,select:hover{border-color:var(--text-dim)}
+  #toast .btn:hover{background:var(--btn-hover)}
+  .btn:not(:disabled):active,.ibtn:not(:disabled):active,.chip:not(:disabled):active,.seg button:not(:disabled):active,button.item:not(:disabled):active{transform:scale(var(--press))}
+  .sw:not(:disabled):active{transform:scale(var(--press))}
+}
+@keyframes tw{from{opacity:1}to{opacity:.15}}
+@media (prefers-reduced-motion:reduce){
+  :root{--lift:0px;--hover-scale:1;--press:1}
+  .chip .tw{animation:none!important}
+  #rec .dot{animation:none}
+  #sheet{transition:none}
+}
+@media (max-width:380px){
+  .chip{min-width:54px;padding:4px 6px}
+}
+@media (orientation:landscape) and (max-height:500px){
+  #bar{width:calc(100% - 16px - var(--safe-l) - var(--safe-r))}
+  #bar .rows{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:6px;align-items:center}
+  #bar .r-pal .lbl-s{display:none}
+  #bar .actions{grid-template-columns:minmax(110px,170px) 44px 44px 44px}
+  .chip{min-height:48px}
+  .chip svg{width:22px;height:22px}
+  #sheet{max-height:94dvh}
+  #cd{top:calc(var(--safe-t) + 8px)}
+}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-label="밤하늘. 누르면 불꽃이 터져요" role="img"></canvas>
+<div id="fps" hidden>FPS</div>
+<div id="playing" class="glass hide" aria-live="polite"></div>
+<div id="aim" aria-hidden="true"><div class="ring"></div><div class="x"></div><div class="lbl">여기서 터져요</div></div>
+<div id="cd" hidden aria-live="off"><div class="lbl"></div><div class="big num"></div></div>
+
+<div id="rec" class="glass" hidden>
+  <span class="dot" aria-hidden="true"></span><b class="num" id="recTime">녹화 중 0:00</b>
+  <button class="btn primary" id="recStop" type="button">멈추기</button>
+</div>
+
+<div id="edge">
+  <button class="ibtn solid" id="photoBtn" type="button" aria-label="사진 저장" title="사진 저장"></button>
+  <button class="ibtn solid" id="fsBtn" type="button" aria-label="전체 화면" title="전체 화면"></button>
+  <button class="ibtn solid" id="menuBtn2" type="button" aria-label="메뉴 열기" title="메뉴"></button>
+</div>
+
+<div id="bar" class="glass" role="toolbar" aria-label="불꽃 컨트롤">
+  <div class="rows">
+    <div class="row r-type"><div class="row scroll" id="typeRow" role="group" aria-label="불꽃 종류"></div></div>
+    <div class="row r-pal"><span class="lbl-s" id="palName">색상</span><div class="row scroll" id="palRow" role="group" aria-label="색상 팔레트"></div></div>
+    <div class="actions">
+      <button class="btn" id="autoBtn" type="button"><span id="autoIco"></span><span id="autoTxt">자동 쇼</span><span class="nm" id="autoName"></span></button>
+      <button class="ibtn" id="soundBtn" type="button" aria-label="소리 끄기"></button>
+      <button class="ibtn" id="menuBtn" type="button" aria-label="메뉴 열기"></button>
+      <button class="ibtn" id="barToggle" type="button" aria-label="컨트롤 바 접기" aria-expanded="true"></button>
+    </div>
+  </div>
+  <button class="ibtn" id="barOpen" type="button" aria-label="컨트롤 바 펼치기" hidden></button>
+</div>
+
+<div id="scrim"></div>
+<section id="sheet" class="glass" role="dialog" aria-modal="true" aria-labelledby="shTitle" aria-hidden="true">
+  <div class="sh-head">
+    <button class="ibtn" id="shBack" type="button" aria-label="뒤로"></button>
+    <h2 id="shTitle">메뉴</h2>
+    <button class="ibtn" id="themeBtn" type="button" aria-label="화면 모드 바꾸기"></button>
+    <button class="ibtn" id="shClose" type="button" aria-label="메뉴 닫기"></button>
+  </div>
+  <div class="sh-body" id="shBody"></div>
+</section>
+
+<div id="dlgWrap"><div id="dlg" class="glass" role="alertdialog" aria-modal="true" aria-labelledby="dlgT"></div></div>
+<div id="toast" class="glass" role="status" aria-live="polite"><span id="toastMsg"></span></div>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
+<script>
+'use strict';
+/* =========================================================
+   나의 불꽃놀이 — 앱 본체
+   ========================================================= */
+const APP_NAME = '나의 불꽃놀이';
+const APP_VERSION = '1.0.0';
+const FORMAT_VERSION = 2;
+const FONT_STACK = '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif';
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rand = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+const pick = a => a[(Math.random() * a.length) | 0];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pad = n => String(n).padStart(2, '0');
+const fmtDate = (ts, withTime = true) => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` + (withTime ? ` ${pad(d.getHours())}:${pad(d.getMinutes())}` : ''); };
+const fmtDur = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${pad(s % 60)}`; };
+const prm = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)'); } catch (e) { return { matches: false, addEventListener() { } }; } })();
+const finePointer = (() => { try { return matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { return false; } })();
+
+const TYPES = [
+  { id: 'chrys', name: '국화' }, { id: 'peony', name: '모란' }, { id: 'willow', name: '버드나무' },
+  { id: 'ring', name: '고리' }, { id: 'heart', name: '하트' }, { id: 'star', name: '별' },
+  { id: 'double', name: '이중 폭발' }, { id: 'falls', name: '폭포' }, { id: 'popper', name: '팡팡' },
+  { id: 'random', name: '무작위' }
+];
+const CONCRETE = TYPES.slice(0, 9).map(t => t.id);
+const TYPE_NAME = Object.fromEntries(TYPES.map(t => [t.id, t.name]));
+const PALETTES = {
+  rainbow: { name: '무지개', c: ['#ff4d5e', '#ff9f1c', '#ffe14d', '#5dff8f', '#3ee6d2', '#4d9bff', '#b56bff'] },
+  gold: { name: '금빛', c: ['#ffd56b', '#ffc23c', '#ffb04a', '#fff1b8'] },
+  blue: { name: '파랑·청록', c: ['#4d9bff', '#3ee6d2', '#86ddff', '#3a6dff'] },
+  pink: { name: '분홍·보라', c: ['#ff5fa2', '#ff92cb', '#c46bff', '#9b5cff'] },
+  red: { name: '빨강·주황', c: ['#ff3b3b', '#ff6a2b', '#ff9f1c', '#ffcf66'] },
+  white: { name: '흰색', c: ['#ffffff', '#e6eeff', '#fff4dc'] },
+  random: { name: '무작위', c: null }
+};
+const PAL_IDS = Object.keys(PALETTES);
+const REAL_PALS = PAL_IDS.filter(p => p !== 'random');
+
+/* ---------- 저장소 (localStorage 안전 래퍼) ---------- */
+const KEYS = { settings: 'nfw.settings', shows: 'nfw.shows', phrases: 'nfw.phrases', countdown: 'nfw.countdown', backups: 'nfw.backups', meta: 'nfw.meta' };
+const DATA_KEYS = ['settings', 'shows', 'phrases', 'countdown'];
+let storageOK = true;
+try { const k = 'nfw.__test'; localStorage.setItem(k, '1'); localStorage.removeItem(k); } catch (e) { storageOK = false; }
+const store = {
+  get(k) { if (!storageOK) return null; try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { if (!storageOK) return; localStorage.setItem(k, v); },     // 실패 시 throw (호출부에서 처리)
+  del(k) { if (!storageOK) return; try { localStorage.removeItem(k); } catch (e) { } }
+};
+
+const DEF_SETTINGS = {
+  type: 'chrys', palette: 'rainbow', gradient: true,
+  sound: true, volume: 0.7, vibrate: true,
+  reduceFlash: false, background: 'city', quality: 'auto', showFps: false,
+  wakeLock: true, photoDate: true, theme: 'system',
+  barCollapsed: false, warned: false,
+  selectedShow: 'festival', playSpeed: 1, repeat: false, phraseColor: 'gold'
+};
+const ENUMS = {
+  type: TYPES.map(t => t.id), palette: PAL_IDS, background: ['city', 'sea', 'mountain', 'sky'],
+  quality: ['auto', 'high', 'normal', 'eco'], theme: ['system', 'light', 'dark'],
+  playSpeed: [0.5, 1, 2], phraseColor: REAL_PALS
+};
+function defCountdown() {
+  const y = new Date().getFullYear() + 1;
+  return { target: `${y}-01-01T00:00`, showId: 'finale', active: false, updatedAt: 0 };
+}
+
+/* ---------- 데이터 검증 (불러오기와 시작 시 공용) ---------- */
+function sanitizeSettings(o) {
+  const s = { ...DEF_SETTINGS };
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return s;
+  for (const k of Object.keys(DEF_SETTINGS)) {
+    if (!(k in o)) continue;
+    const v = o[k], d = DEF_SETTINGS[k];
+    if (ENUMS[k]) { if (ENUMS[k].includes(v)) s[k] = v; }
+    else if (typeof d === 'boolean') { if (typeof v === 'boolean') s[k] = v; }
+    else if (typeof d === 'number') { if (Number.isFinite(v)) s[k] = clamp(v, 0, 1); }
+    else if (typeof d === 'string') { if (typeof v === 'string' && v.length < 80) s[k] = v; }
+  }
+  return s;
+}
+const HEX = /^#[0-9a-f]{6}$/i;
+function sanitizeEvent(e) {
+  if (!e || typeof e !== 'object') return null;
+  const t = Number(e.t), x = Number(e.x), y = Number(e.y);
+  if (![t, x, y].every(Number.isFinite)) return null;
+  const ev = { t: clamp(Math.round(t), 0, 36e5), x: clamp(x, 0, 1), y: clamp(y, 0, 1), type: CONCRETE.includes(e.type) || e.type === 'text' ? e.type : 'chrys' };
+  ev.c1 = HEX.test(e.c1) ? e.c1 : '#ffd56b';
+  ev.c2 = HEX.test(e.c2) ? e.c2 : ev.c1;
+  if (ev.type === 'text') { const tx = typeof e.text === 'string' ? e.text.trim().slice(0, 12) : ''; if (!tx) return null; ev.text = tx; ev.pal = REAL_PALS.includes(e.pal) ? e.pal : 'gold'; }
+  return ev;
+}
+function sanitizeShow(s) {
+  if (!s || typeof s !== 'object' || typeof s.id !== 'string' || !s.id || !Array.isArray(s.events)) return null;
+  const name = typeof s.name === 'string' ? s.name.trim().slice(0, 40) : '';
+  const events = s.events.slice(0, 5000).map(sanitizeEvent).filter(Boolean).sort((a, b) => a.t - b.t);
+  const now = Date.now();
+  return {
+    id: s.id.slice(0, 60), name: name || '이름 없는 쇼', events,
+    createdAt: Number.isFinite(s.createdAt) ? s.createdAt : now,
+    updatedAt: Number.isFinite(s.updatedAt) ? s.updatedAt : (Number.isFinite(s.createdAt) ? s.createdAt : now)
+  };
+}
+function sanitizePhrase(p) {
+  if (!p || typeof p !== 'object' || typeof p.id !== 'string' || typeof p.text !== 'string') return null;
+  const text = p.text.trim().slice(0, 12); if (!text) return null;
+  const now = Date.now();
+  return { id: p.id.slice(0, 60), text, color: REAL_PALS.includes(p.color) ? p.color : 'gold',
+    createdAt: Number.isFinite(p.createdAt) ? p.createdAt : now, updatedAt: Number.isFinite(p.updatedAt) ? p.updatedAt : now };
+}
+function sanitizeCountdown(c) {
+  const d = defCountdown();
+  if (!c || typeof c !== 'object') return d;
+  if (typeof c.target === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(c.target) && !isNaN(new Date(c.target))) d.target = c.target;
+  if (typeof c.showId === 'string') d.showId = c.showId.slice(0, 60);
+  d.active = c.active === true;
+  d.updatedAt = Number.isFinite(c.updatedAt) ? c.updatedAt : 0;
+  return d;
+}
+const sanitizeList = (a, fn) => Array.isArray(a) ? a.map(fn).filter(Boolean) : null;
+
+/* ---------- 상태 불러오기 ---------- */
+const startupNotices = [];
+function loadKey(name, fn, def) {
+  const raw = store.get(KEYS[name]);
+  if (raw == null) return def();
+  try { const v = fn(JSON.parse(raw)); if (v == null) throw 0; return v; }
+  catch (e) { startupNotices.push(name); return def(); }
+}
+const state = {
+  settings: loadKey('settings', o => (o && typeof o === 'object' && !Array.isArray(o)) ? sanitizeSettings(o) : null, () => ({ ...DEF_SETTINGS })),
+  shows: loadKey('shows', a => sanitizeList(a, sanitizeShow), () => []),
+  phrases: loadKey('phrases', a => sanitizeList(a, sanitizePhrase), () => []),
+  countdown: loadKey('countdown', c => (c && typeof c === 'object') ? sanitizeCountdown(c) : null, defCountdown),
+  backups: loadKey('backups', a => Array.isArray(a) ? a.filter(b => b && b.data && Number.isFinite(b.savedAt)).slice(0, 2) : null, () => []),
+  meta: loadKey('meta', o => (o && typeof o === 'object') ? o : null, () => ({}))
+};
+if (!Number.isFinite(state.meta.firstUseAt)) state.meta.firstUseAt = Date.now();
+let quotaWarned = false;
+function save(name) {
+  try { store.set(KEYS[name], JSON.stringify(state[name])); }
+  catch (e) { if (!quotaWarned) { quotaWarned = true; setTimeout(() => toast('저장 공간이 부족해 저장하지 못했어요. 전체 저장으로 백업해 주세요'), 0); } }
+}
+const S = () => state.settings;
+function setSetting(k, v) { state.settings[k] = v; save('settings'); }
+function snapshotData() { return JSON.parse(JSON.stringify({ settings: state.settings, shows: state.shows, phrases: state.phrases, countdown: state.countdown })); }
+
+/* 트랜잭션 저장: 하나라도 실패하면 이전 상태로 롤백 */
+function commitData(next) {
+  const rawSnap = {}, memSnap = snapshotData();
+  for (const k of DATA_KEYS) rawSnap[k] = store.get(KEYS[k]);
+  try {
+    for (const k of DATA_KEYS) store.set(KEYS[k], JSON.stringify(next[k]));
+    for (const k of DATA_KEYS) state[k] = next[k];
+  } catch (e) {
+    for (const k of DATA_KEYS) { try { rawSnap[k] == null ? store.del(KEYS[k]) : localStorage.setItem(KEYS[k], rawSnap[k]); } catch (_) { } }
+    for (const k of DATA_KEYS) state[k] = memSnap[k];
+    throw e;
+  }
+}
+function pushBackup(reason) {
+  state.backups.unshift({ savedAt: Date.now(), reason, data: snapshotData() });
+  state.backups = state.backups.slice(0, 2);
+  try { store.set(KEYS.backups, JSON.stringify(state.backups)); return true; }
+  catch (e) { state.backups.shift(); try { store.set(KEYS.backups, JSON.stringify(state.backups)); } catch (_) { } return false; }
+}
+
+/* ---------- 파일 형식 / 버전 변환 ---------- */
+function exportPayload(kind, data) {
+  return { app: APP_NAME, formatVersion: FORMAT_VERSION, appVersion: APP_VERSION, exportedAt: new Date().toISOString(), kind, data };
+}
+class ImportError extends Error { }
+/* formatVersion 1(예전 형식) → 2 변환
+   v1: { app, version:1, savedAt, shows:[{id,name,date,events:[{time,x,y,type,color}]}], phrases:["문구"], settings:{} } */
+const MIGRATIONS = {
+  1(o) {
+    const conv = (s, i) => ({
+      id: s.id || ('s_v1_' + i), name: s.name, createdAt: s.date || Date.now(), updatedAt: s.date || Date.now(),
+      events: (s.events || []).map(e => ({ t: e.time, x: e.x, y: e.y, type: e.type, c1: e.color, c2: e.color }))
+    });
+    return {
+      app: o.app, formatVersion: 2, appVersion: o.appVersion || '0.x', exportedAt: o.savedAt || o.exportedAt || null,
+      kind: 'full',
+      data: {
+        settings: o.settings || {}, shows: (o.shows || []).map(conv),
+        phrases: (o.phrases || []).map((t, i) => typeof t === 'string' ? { id: 'p_v1_' + i, text: t, color: 'gold' } : t),
+        countdown: o.countdown || null
+      }
+    };
+  }
+};
+function parseImport(text) {
+  let o;
+  try { o = JSON.parse(text); } catch (e) { throw new ImportError('JSON 형식이 아니에요. 파일이 손상되었거나 다른 종류의 파일일 수 있어요.'); }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) throw new ImportError('파일 내용이 올바른 형식이 아니에요.');
+  if (o.app !== APP_NAME) throw new ImportError('‘나의 불꽃놀이’에서 저장한 파일이 아니에요.');
+  let v = Number.isFinite(o.formatVersion) ? o.formatVersion : o.version;
+  if (!Number.isFinite(v) || v < 1) throw new ImportError('파일의 형식 버전 정보를 찾을 수 없어요.');
+  if (v > FORMAT_VERSION) throw new ImportError('더 새로운 버전의 앱에서 만든 파일이에요. 앱을 새로 고친 뒤 다시 시도해 주세요.');
+  while (v < FORMAT_VERSION) { const m = MIGRATIONS[v]; if (!m) throw new ImportError('지원하지 않는 예전 형식이에요.'); o = m(o); v = o.formatVersion; }
+  const d = o.data;
+  if (!d || typeof d !== 'object') throw new ImportError('파일에 데이터가 없어요.');
+  if (d.shows !== undefined && !Array.isArray(d.shows)) throw new ImportError('쇼 목록이 손상되었어요.');
+  if (d.phrases !== undefined && !Array.isArray(d.phrases)) throw new ImportError('문구 목록이 손상되었어요.');
+  const rawShows = d.shows || [], rawPhr = d.phrases || [];
+  const shows = rawShows.map(sanitizeShow).filter(Boolean);
+  const phrases = rawPhr.map(sanitizePhrase).filter(Boolean);
+  const skipped = (rawShows.length - shows.length) + (rawPhr.length - phrases.length);
+  const kind = o.kind === 'show' ? 'show' : 'full';
+  if (kind === 'show' && !shows.length) throw new ImportError('파일 안에 불러올 수 있는 쇼가 없어요.');
+  return {
+    kind, exportedAt: o.exportedAt, appVersion: o.appVersion, skipped,
+    data: {
+      settings: d.settings && typeof d.settings === 'object' ? sanitizeSettings(d.settings) : null,
+      shows, phrases, countdown: d.countdown && typeof d.countdown === 'object' ? sanitizeCountdown(d.countdown) : null
+    }
+  };
+}
+function mergeInto(cur, inc) {
+  const out = JSON.parse(JSON.stringify(cur));
+  let added = 0, updated = 0, same = 0, dup = 0;
+  for (const s0 of inc.shows) {
+    let s = { ...s0 };
+    const i = out.shows.findIndex(x => x.id === s.id);
+    if (i >= 0) { if ((s.updatedAt || 0) > (out.shows[i].updatedAt || 0)) { out.shows[i] = s; updated++; } else same++; }
+    else { if (out.shows.some(x => x.name === s.name)) s.name = (s.name + ' (가져옴)').slice(0, 46); out.shows.push(s); added++; }
+  }
+  for (const p of inc.phrases) {
+    const i = out.phrases.findIndex(x => x.id === p.id);
+    if (i >= 0) { if ((p.updatedAt || 0) > (out.phrases[i].updatedAt || 0)) { out.phrases[i] = p; updated++; } else same++; }
+    else if (out.phrases.some(x => x.text === p.text)) dup++;
+    else { out.phrases.push(p); added++; }
+  }
+  if (inc.countdown && (inc.countdown.updatedAt || 0) > (out.countdown.updatedAt || 0)) { out.countdown = { ...inc.countdown, active: false }; updated++; }
+  return { out, added, updated, same, dup };
+}
+
+/* =========================================================
+   그래픽 엔진 (Canvas 2D)
+   ========================================================= */
+const cv = $('#sky');
+const ctx = cv.getContext('2d', { alpha: false });
+const fxc = document.createElement('canvas'), fx = fxc.getContext('2d');
+const bgc = document.createElement('canvas'), bgx = bgc.getContext('2d');
+const fgc = document.createElement('canvas'), fgx = fgc.getContext('2d');
+let W = 1, H = 1, DPR = 1, U = 1, groundY = 1, hasWater = false;
+
+const LEVELS = [
+  { name: '고품질', mul: 1, max: 5200, dpr: 2, trail: 1, refl: 3, stars: 170, glow: 2.6 },
+  { name: '보통', mul: .7, max: 3200, dpr: 1.5, trail: .75, refl: 5, stars: 120, glow: 2.2 },
+  { name: '절약', mul: .42, max: 1600, dpr: 1, trail: .5, refl: 8, stars: 70, glow: 1.6 }
+];
+let level = 0;
+const Q = () => LEVELS[level];
+const reduceFlash = () => S().reduceFlash || prm.matches;
+const reduceMotion = () => prm.matches;
+
+/* 시드 고정 난수 (배경이 매번 같게) */
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function resize() {
+  const r = cv.getBoundingClientRect();
+  W = Math.max(1, Math.round(r.width || innerWidth)); H = Math.max(1, Math.round(r.height || innerHeight));
+  DPR = Math.min(window.devicePixelRatio || 1, Q().dpr, 2);
+  for (const c of [cv, fxc, bgc, fgc]) { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); }
+  U = clamp(Math.min(W, H) / 520, .55, 1.8);
+  const bg = S().background, land = W > H;
+  groundY = bg === 'city' ? H * (land ? .8 : .8) : bg === 'sea' ? H * .76 : bg === 'mountain' ? H * .82 : H;
+  hasWater = bg !== 'sky';
+  buildStars(); drawBackground(); drawForeground();
+}
+
+/* ---------- 하늘·별·달 ---------- */
+let stars = [];
+function buildStars() {
+  const rnd = mulberry(7), n = Math.round(Q().stars * clamp(W * H / (800 * 900), .5, 1.6));
+  stars = [];
+  for (let i = 0; i < n; i++) {
+    const y = Math.pow(rnd(), 1.4) * groundY * .92;
+    stars.push({ x: rnd() * W, y, r: rnd() < .12 ? 1.4 : rnd() < .5 ? 1 : .7, b: .35 + rnd() * .55, ph: rnd() * 6.3, sp: .6 + rnd() * 2.2 });
+  }
+}
+const moon = { x: 0, y: 0, r: 0 };
+function drawBackground() {
+  const c = bgx; c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = c.createLinearGradient(0, 0, 0, groundY);
+  g.addColorStop(0, '#04061a'); g.addColorStop(.55, '#0a1140'); g.addColorStop(1, S().background === 'city' ? '#2a1d55' : '#1b1b52');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  if (S().background === 'city') { // 도시 불빛이 비친 지평선
+    const h = c.createLinearGradient(0, groundY - H * .25, 0, groundY);
+    h.addColorStop(0, 'rgba(255,140,90,0)'); h.addColorStop(1, 'rgba(255,140,90,.10)');
+    c.fillStyle = h; c.fillRect(0, groundY - H * .25, W, H * .25);
+  }
+  // 은은한 달
+  moon.r = clamp(Math.min(W, H) * .035, 12, 34); moon.x = W * .82; moon.y = Math.min(H * .14, groundY * .25) + moon.r;
+  const mg = c.createRadialGradient(moon.x, moon.y, moon.r * .6, moon.x, moon.y, moon.r * 5);
+  mg.addColorStop(0, 'rgba(220,225,255,.16)'); mg.addColorStop(1, 'rgba(220,225,255,0)');
+  c.fillStyle = mg; c.fillRect(moon.x - moon.r * 5, moon.y - moon.r * 5, moon.r * 10, moon.r * 10);
+  const mf = c.createRadialGradient(moon.x - moon.r * .3, moon.y - moon.r * .3, moon.r * .2, moon.x, moon.y, moon.r);
+  mf.addColorStop(0, '#f4f1e2'); mf.addColorStop(1, '#c9c6b6');
+  c.globalAlpha = .82; c.fillStyle = mf; c.beginPath(); c.arc(moon.x, moon.y, moon.r, 0, 6.283); c.fill();
+  c.fillStyle = 'rgba(120,118,110,.18)';
+  for (const [dx, dy, rr] of [[-.3, -.1, .22], [.25, .3, .15], [.1, -.4, .1], [-.05, .35, .09]]) { c.beginPath(); c.arc(moon.x + dx * moon.r, moon.y + dy * moon.r, rr * moon.r, 0, 6.283); c.fill(); }
+  c.globalAlpha = 1;
+}
+function drawForeground() {
+  const c = fgx; c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, W, H);
+  const bg = S().background, rnd = mulberry(42);
+  if (bg === 'sky') return;
+  // 수면
+  const wg = c.createLinearGradient(0, groundY, 0, H);
+  wg.addColorStop(0, '#0d1240'); wg.addColorStop(1, '#03051a');
+  c.fillStyle = wg; c.fillRect(0, groundY, W, H - groundY);
+  // 달빛 반사
+  for (let y = groundY + 3; y < H; y += 5) {
+    const k = (y - groundY) / (H - groundY), w = moon.r * (1.2 + k * 3) * (0.6 + rnd() * .8);
+    c.fillStyle = `rgba(230,230,255,${.10 * (1 - k)})`; c.fillRect(moon.x - w / 2 + (rnd() - .5) * 8, y, w, 1.5);
+  }
+  if (bg === 'city') {
+    let x = -10; const base = groundY + 1;
+    while (x < W + 10) {
+      const bw = (16 + rnd() * 44) * U * 1.2, bh = (H * .025 + rnd() * H * .1) * (rnd() < .15 ? 1.5 : 1);
+      c.fillStyle = '#05071a'; c.fillRect(x, base - bh, bw + 1, bh);
+      if (rnd() < .25) c.fillRect(x + bw * .45, base - bh - 12 * U, 2, 12 * U); // 안테나
+      for (let wy = base - bh + 5; wy < base - 4; wy += 7 * U + 2) for (let wx = x + 4; wx < x + bw - 4; wx += 6 * U + 2) {
+        if (rnd() < .16) { c.fillStyle = `rgba(255,${200 + (rnd() * 40 | 0)},120,${.35 + rnd() * .4})`; c.fillRect(wx, wy, 2 * U + .5, 2.5 * U + .5); }
+      }
+      // 불빛 반사 줄기
+      if (rnd() < .5) { c.fillStyle = 'rgba(255,200,120,.06)'; c.fillRect(x + bw * .3, base + 2, bw * .4, (H - base) * .6); }
+      x += bw + rnd() * 3;
+    }
+  } else if (bg === 'mountain') {
+    const ridge = (amp, base, col, rough) => {
+      c.fillStyle = col; c.beginPath(); c.moveTo(0, groundY + 1); let y = base;
+      for (let x = 0; x <= W + 20; x += 20) { y += (rnd() - .5) * rough; y = clamp(y, groundY - amp, groundY - amp * .15); c.lineTo(x, y); }
+      c.lineTo(W + 20, groundY + 1); c.closePath(); c.fill();
+    };
+    ridge(H * .22, groundY - H * .12, '#10153f', H * .06);
+    ridge(H * .13, groundY - H * .06, '#05071a', H * .045);
+  } else if (bg === 'sea') {
+    c.fillStyle = 'rgba(180,190,255,.18)'; c.fillRect(0, groundY, W, 1);
+  }
+}
+
+let shooting = null, nextShoot = 4;
+function drawSky(t, dt) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bgc, 0, 0);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const slow = reduceMotion() ? .25 : 1;
+  for (const s of stars) {
+    const a = s.b * (.65 + .35 * Math.sin(t * s.sp * slow + s.ph));
+    ctx.fillStyle = `rgba(235,240,255,${a.toFixed(2)})`; ctx.fillRect(s.x, s.y, s.r, s.r);
+  }
+  // 별똥별 (움직임 줄이기 설정이면 없음)
+  if (!reduceMotion()) {
+    nextShoot -= dt;
+    if (!shooting && nextShoot <= 0) { shooting = { x: rand(W * .1, W * .9), y: rand(0, groundY * .35), vx: rand(-1, 1) < 0 ? -rand(380, 560) : rand(380, 560), vy: rand(120, 220), life: 0, max: rand(.6, 1) }; nextShoot = rand(7, 16); }
+    if (shooting) {
+      const s = shooting; s.life += dt; s.x += s.vx * dt * U; s.y += s.vy * dt * U;
+      const k = s.life / s.max, a = Math.sin(Math.PI * Math.min(1, k)) * .8;
+      const g = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * .12 * U, s.y - s.vy * .12 * U);
+      g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * .12 * U, s.y - s.vy * .12 * U); ctx.stroke();
+      if (k >= 1) shooting = null;
+    }
+  }
+}
+
+/* ---------- 입자 (오브젝트 풀) ---------- */
+class Particle { constructor() { this.hx = new Float32Array(32); this.hy = new Float32Array(32); } }
+const pool = [], active = [];
+const TRAIL_CAP = 30;
+const tmpl = {}; // 재사용 옵션 객체
+function spawn(x, y, vx, vy, o) {
+  if (active.length >= Q().max && o.kind !== 1) return null;
+  const p = pool.pop() || new Particle();
+  p.x = x; p.y = y; p.vx = vx; p.vy = vy; p.age = 0; p.life = o.life; p.size = o.size; p.drag = o.drag; p.g = o.g;
+  p.trail = Math.min(TRAIL_CAP, Math.round((o.trail || 0) * Q().trail)); p.tn = 0; p.hi = 0; p.hx[0] = x; p.hy[0] = y;
+  p.c = o.c; p.flick = !!o.flick; p.kind = o.kind || 0; p.onDie = o.onDie || null; p.fade = o.fade ?? .6;
+  p.seed = Math.random() * 6.283; p.shot = o.shot || null; p.shrink = o.shrink ?? .45;
+  if (p.kind === 2) { p.sx = x; p.sy = y; p.tx = o.tx; p.ty = o.ty; p.form = o.form; }
+  active.push(p); return p;
+}
+function room() { return Math.max(0, Q().max - active.length - 40); }
+
+/* 색 보간 (단계를 나눠 스프라이트 캐시 수를 제한) */
+const hexRgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mixCache = new Map();
+function mix(a, b, t) {
+  t = Math.round(clamp(t, 0, 1) * 4) / 4; if (t === 0 || a === b) return a; if (t === 1) return b;
+  const k = a + b + t; let v = mixCache.get(k); if (v) return v;
+  const A = hexRgb(a), B = hexRgb(b);
+  v = '#' + A.map((x, i) => Math.round(x + (B[i] - x) * t).toString(16).padStart(2, '0')).join('');
+  mixCache.set(k, v); return v;
+}
+const spriteCache = new Map();
+function sprite(c) {
+  let s = spriteCache.get(c); if (s) return s;
+  s = document.createElement('canvas'); s.width = s.height = 32;
+  const g = s.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  const [r, gg, b] = hexRgb(c);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.18, `rgba(${r},${gg},${b},1)`);
+  gr.addColorStop(.45, `rgba(${r},${gg},${b},.35)`); gr.addColorStop(1, `rgba(${r},${gg},${b},0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, 32, 32); spriteCache.set(c, s); return s;
+}
+
+/* ---------- 섬광 ---------- */
+const flash = { a: 0, c: '#ffffff' };
+function addFlash(c, k) { flash.a = Math.min(1, flash.a + k); flash.c = c; }
+
+/* ---------- 불꽃 발사 ---------- */
+let engineTime = 0;
+const delayed = [];
+const later = (sec, fn) => delayed.push({ at: engineTime + sec, fn });
+function resolveShot(type, pal, extra) {
+  const t = type === 'random' ? pick(CONCRETE) : type;
+  const pid = pal === 'random' ? pick(REAL_PALS) : pal;
+  const cs = PALETTES[pid].c;
+  const c1 = pick(cs); let c2 = S().gradient ? pick(cs.filter(c => c !== c1)) || c1 : c1;
+  return Object.assign({ type: t, pal: pid, c1, c2 }, extra || {});
+}
+/* 로켓: 아래에서 솟아올라 (tx,ty) 높이에서 폭발 */
+function launch(tx, ty, shot) {
+  ty = Math.min(ty, groundY - Math.max(40, H * .08)); ty = Math.max(ty, H * .05);
+  const sx = clamp(tx + rand(-30, 30) * U, 10, W - 10), sy = groundY + 4;
+  const gR = 760 * (H / 800) + 200, h = sy - ty;
+  const vy = -Math.sqrt(2 * gR * h), tA = -vy / gR, vx = (tx - sx) / tA;
+  tmpl.life = 30; tmpl.size = 1.6; tmpl.drag = 1; tmpl.g = gR; tmpl.trail = 6; tmpl.c = '#ffd9a0'; tmpl.kind = 1; tmpl.shot = shot; tmpl.flick = false; tmpl.onDie = null; tmpl.fade = .9;
+  const p = spawn(sx, sy, vx, vy, tmpl); tmpl.kind = 0; tmpl.shot = null;
+  if (p) { p.tx = tx; p.ty = ty; }
+  sfx.launch(sx, tA);
+  return tA;
+}
+function sphere() { const u = Math.random() * 2 - 1, th = Math.random() * 6.283, r = Math.sqrt(1 - u * u); return [r * Math.cos(th), r * Math.sin(th), r]; }
+function ringDir(a, tilt, rot) { const x = Math.cos(a), y = Math.sin(a) * tilt, cr = Math.cos(rot), sr = Math.sin(rot); return [x * cr - y * sr, x * sr + y * cr]; }
+
+function explode(x, y, shot) {
+  const q = Q(), sc = shot.scale || 1, k = U * sc;
+  const big = { chrys: .75, peony: .85, willow: .7, ring: .6, heart: .6, star: .6, double: .7, falls: .8, popper: .35, text: .7 }[shot.type] || .6;
+  const n = base => Math.min(room(), Math.round(base * q.mul));
+  const o = tmpl; o.kind = 0; o.onDie = null; o.flick = false; o.fade = .6; o.shrink = .45; o.shot = null;
+  const { c1, c2 } = shot;
+  switch (shot.type) {
+    case 'chrys': { // 국화: 구형 + 긴 꼬리
+      const m = n(120); o.size = 1.5; o.drag = .972; o.g = 55 * k; o.trail = 12; o.flick = true; o.fade = .55;
+      const crackle = Math.random() < .4;
+      for (let i = 0; i < m; i++) { const [dx, dy, r] = sphere(), sp = 235 * k * rand(.92, 1.06); o.life = rand(1.5, 2.1); o.c = mix(c1, c2, r); o.onDie = crackle && i % 5 === 0 ? crackleDie : null; spawn(x, y, dx * sp, dy * sp, o); }
+      if (crackle) sfx.crackle(x, y, 1.6, 18);
+      break;
+    }
+    case 'peony': { // 모란: 꼬리 없는 굵은 구형
+      const m = n(150); o.size = 2.7; o.drag = .962; o.g = 45 * k; o.trail = 0; o.fade = .5; o.shrink = .3;
+      for (let i = 0; i < m; i++) { const [dx, dy, r] = sphere(), sp = 250 * k * rand(.9, 1.05); o.life = rand(1.05, 1.45); o.c = mix(c1, c2, r); spawn(x, y, dx * sp, dy * sp, o); }
+      break;
+    }
+    case 'willow': { // 버드나무: 금빛 가지가 아래로 길게
+      const m = n(95); o.size = 1.35; o.drag = .955; o.g = 62 * k; o.trail = 28; o.flick = true; o.fade = .45; o.shrink = .2;
+      const golds = ['#ffcf6b', '#ffc04d', '#ffe39a'];
+      for (let i = 0; i < m; i++) { const [dx, dy] = sphere(), sp = 165 * k * rand(.85, 1.05); o.life = rand(3.1, 4.1); o.c = pick(golds); spawn(x, y, dx * sp, dy * sp - 20 * k, o); }
+      break;
+    }
+    case 'ring': { // 고리: 하나 또는 이중 원
+      const dbl = Math.random() < .5, rot = rand(-.5, .5), m = n(dbl ? 70 : 90);
+      o.size = 1.8; o.drag = .97; o.g = 30 * k; o.trail = 4; o.fade = .6;
+      const draw = (cnt, sp, tilt, rt, c) => { for (let i = 0; i < cnt; i++) { const [dx, dy] = ringDir(i / cnt * 6.283, tilt, rt); o.life = rand(1.4, 1.7); o.c = c; spawn(x, y, dx * sp, dy * sp, o); } };
+      draw(m, 225 * k, rand(.35, 1), rot, c1);
+      if (dbl) draw(Math.round(m * .8), 140 * k, rand(.35, 1), rot + rand(.6, 1.4), c2);
+      break;
+    }
+    case 'heart': {
+      const m = n(110); o.size = 1.8; o.drag = .968; o.g = 22 * k; o.trail = 3; o.fade = .6;
+      const sp = 13.5 * k, rot = rand(-.18, .18), cr = Math.cos(rot), sr = Math.sin(rot);
+      for (let i = 0; i < m; i++) {
+        const t = i / m * 6.283, hx = 16 * Math.pow(Math.sin(t), 3), hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        const vx = (hx * cr - hy * sr) * sp, vy = (hx * sr + hy * cr) * sp; o.life = rand(1.5, 1.8); o.c = i % 3 ? c1 : c2; spawn(x, y, vx, vy, o);
+      }
+      break;
+    }
+    case 'star': {
+      const m = n(110); o.size = 1.8; o.drag = .968; o.g = 22 * k; o.trail = 3; o.fade = .6;
+      const rot = rand(-.3, .3), V = [];
+      for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + rot + j * Math.PI / 5, r = j % 2 ? .42 : 1; V.push([Math.cos(a) * r, Math.sin(a) * r]); }
+      for (let i = 0; i < m; i++) {
+        const f = i / m * 10, j = Math.floor(f), u = f - j, A = V[j], B = V[(j + 1) % 10], sp = 230 * k;
+        o.life = rand(1.5, 1.8); o.c = j % 2 ? c2 : c1; spawn(x, y, (A[0] + (B[0] - A[0]) * u) * sp, (A[1] + (B[1] - A[1]) * u) * sp, o);
+      }
+      break;
+    }
+    case 'double': { // 한 번 터진 뒤 각 입자가 다시 터짐
+      const m = n(30); o.size = 2; o.drag = .965; o.g = 40 * k; o.trail = 7; o.fade = .85; o.onDie = secondBurst;
+      for (let i = 0; i < m; i++) { const [dx, dy] = sphere(), sp = 190 * k * rand(.85, 1.05); o.life = rand(.6, .8); o.c = c1; const p = spawn(x, y, dx * sp, dy * sp, o); if (p) p.shot = shot; }
+      later(.7, () => { sfx.bang(x, y, .45, 0); sfx.crackle(x, y, .1, 14); });
+      break;
+    }
+    case 'falls': { // 폭포: 넓은 줄에서 아래로 쏟아짐
+      const m = n(150), span = Math.min(W * .7, 520 * k); o.size = 1.3; o.drag = .985; o.g = 150 * k; o.trail = 20; o.flick = true; o.fade = .5; o.shrink = .2;
+      for (let i = 0; i < m; i++) { const px = x + (i / m - .5) * span + rand(-4, 4), py = y + rand(-6, 6) * k; o.life = rand(2.6, 3.5); o.c = Math.random() < .35 ? '#fff4dc' : (Math.random() < .5 ? c1 : c2); spawn(px, py, rand(-12, 12) * k, -rand(0, 45) * k, o); }
+      break;
+    }
+    case 'popper': { // 작은 불꽃 여러 개가 연달아
+      const cnt = 6 + (Math.random() * 4 | 0), pal = PALETTES[shot.pal].c;
+      for (let j = 0; j < cnt; j++) later(j * rand(.08, .14), () => {
+        const px = x + rand(-75, 75) * k, py = y + rand(-60, 60) * k, c = pick(pal), m = n(26);
+        o.size = 1.5; o.drag = .955; o.g = 40 * k; o.trail = 3; o.flick = true; o.fade = .5; o.onDie = null; o.kind = 0;
+        for (let i = 0; i < m; i++) { const [dx, dy] = sphere(), sp = 115 * k * rand(.85, 1.05); o.life = rand(.6, .9); o.c = c; spawn(px, py, dx * sp, dy * sp, o); }
+        sfx.bang(px, py, .2, 0); addFlash(c, .15); vibrate(8);
+      });
+      break;
+    }
+    case 'text': {
+      const pts = shot.points || [], m = Math.min(pts.length, room()), pal = PALETTES[shot.pal] ? PALETTES[shot.pal].c : PALETTES.gold.c;
+      o.size = 1.7; o.drag = .985; o.g = 10 * k; o.trail = 4; o.fade = .65; o.kind = 2; o.form = .6; o.shrink = .3;
+      const minX = pts.length ? Math.min(...pts.map(p => p[0])) : 0, maxX = pts.length ? Math.max(...pts.map(p => p[0])) : 1;
+      for (let i = 0; i < m; i++) {
+        const pt = pts[i]; o.tx = x + pt[0]; o.ty = y + pt[1]; o.life = rand(3, 3.5);
+        o.c = shot.pal === 'rainbow' ? pal[Math.min(pal.length - 1, Math.floor((pt[0] - minX) / (maxX - minX + 1) * pal.length))] : pick(pal);
+        spawn(x, y, rand(-20, 20) * k, rand(-20, 20) * k, o);
+      }
+      o.kind = 0;
+      break;
+    }
+  }
+  o.onDie = null; o.kind = 0;
+  if (shot.type !== 'popper') {
+    sfx.bang(x, y, big * sc, 0);
+    addFlash(c1, big * .9); vibrate(big > .7 ? 22 : 14);
+  }
+}
+function secondBurst(p) {
+  const k = U, m = Math.min(room(), Math.round(14 * Q().mul)), c = p.shot ? p.shot.c2 : '#ffffff';
+  const o = tmpl; o.size = 1.4; o.drag = .95; o.g = 40 * k; o.trail = 3; o.flick = true; o.fade = .5; o.onDie = null; o.kind = 0; o.shrink = .4;
+  for (let i = 0; i < m; i++) { const [dx, dy] = sphere(), sp = 85 * k * rand(.8, 1.1); o.life = rand(.7, 1); o.c = c; spawn(p.x, p.y, p.vx * .2 + dx * sp, p.vy * .2 + dy * sp, o); }
+}
+function crackleDie(p) {
+  const o = tmpl; o.size = 1.1; o.drag = .9; o.g = 20; o.trail = 0; o.flick = true; o.fade = .2; o.onDie = null; o.kind = 0; o.c = '#fffbe8'; o.shrink = 0;
+  const m = Math.min(room(), 3);
+  for (let i = 0; i < m; i++) { o.life = rand(.08, .18); spawn(p.x + rand(-4, 4), p.y + rand(-4, 4), rand(-40, 40), rand(-40, 40), o); }
+}
+
+/* ---------- 문구 불꽃: 글자 픽셀 위치 ---------- */
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function fontsReady(text) {
+  try {
+    if (document.fonts) {
+      await Promise.race([document.fonts.load(`700 80px "Pretendard Variable"`, text), wait(1800)]);
+      await Promise.race([document.fonts.ready, wait(1800)]);
+    }
+  } catch (e) { /* 대체 폰트로 계속 */ }
+}
+async function textPoints(text) {
+  await fontsReady(text);
+  const fs = 96, c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true });
+  x.font = `700 ${fs}px ${FONT_STACK}`;
+  const tw = Math.max(10, Math.ceil(x.measureText(text).width));
+  c.width = tw + 16; c.height = Math.ceil(fs * 1.4);
+  x.font = `700 ${fs}px ${FONT_STACK}`; x.textBaseline = 'middle'; x.fillStyle = '#fff'; x.fillText(text, 8, c.height / 2);
+  const d = x.getImageData(0, 0, c.width, c.height).data;
+  let filled = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 128) filled++;
+  const want = Math.round(520 * Q().mul + 80);
+  const step = Math.max(2, Math.sqrt(filled / want));
+  const disp = Math.min((W * .9) / c.width, (H * .2) / c.height, 3.2);
+  const pts = [];
+  for (let yy = 0; yy < c.height; yy += step) for (let xx = 0; xx < c.width; xx += step) {
+    const ix = (Math.floor(yy) * c.width + Math.floor(xx)) * 4 + 3;
+    if (d[ix] > 128) pts.push([(xx - c.width / 2) * disp, (yy - c.height / 2) * disp]);
+  }
+  return { pts, w: c.width * disp, h: c.height * disp };
+}
+async function fireText(text, pal, cx, cy, record = true) {
+  const { pts, w, h } = await textPoints(text);
+  const x = clamp(cx ?? W / 2, w / 2 + 8, Math.max(w / 2 + 8, W - w / 2 - 8));
+  const y = clamp(cy ?? H * .32, h / 2 + 20, Math.max(h / 2 + 20, groundY - h / 2 - 30));
+  const pid = PALETTES[pal] && pal !== 'random' ? pal : 'gold';
+  const shot = { type: 'text', pal: pid, c1: PALETTES[pid].c[0], c2: PALETTES[pid].c[0], points: pts, scale: 1 };
+  if (record) recordShot(x, y, { type: 'text', text, pal: pid, c1: shot.c1, c2: shot.c2 });
+  launch(x, y, shot);
+}
+
+/* ---------- 업데이트 / 그리기 ---------- */
+const ease = t => 1 - Math.pow(1 - t, 3);
+function update(dt) {
+  engineTime += dt;
+  for (let i = delayed.length - 1; i >= 0; i--) if (delayed[i].at <= engineTime) { const d = delayed[i]; delayed.splice(i, 1); try { d.fn(); } catch (e) { } }
+  for (let i = active.length - 1; i >= 0; i--) {
+    const p = active[i]; p.age += dt;
+    if (p.kind === 2 && p.age < p.form) { const e = ease(p.age / p.form); p.x = p.sx + (p.tx - p.sx) * e; p.y = p.sy + (p.ty - p.sy) * e; }
+    else {
+      if (p.kind === 2 && p.vx !== 0 && p.age - dt < p.form) { p.vx = 0; p.vy = 0; }
+      const d = p.drag === 1 ? 1 : Math.pow(p.drag, dt * 60);
+      p.vx *= d; p.vy = p.vy * d + p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+    if (p.trail > 0) { p.hi = (p.hi + 1) & 31; p.hx[p.hi] = p.x; p.hy[p.hi] = p.y; if (p.tn < p.trail) p.tn++; }
+    let dead = p.age >= p.life;
+    if (p.kind === 1) {
+      if (Math.random() < .7) { const o = { life: rand(.25, .5), size: 1, drag: .9, g: 30, trail: 0, c: '#ffb46b', kind: 0, fade: .2, shrink: .6 }; spawn(p.x + rand(-1.5, 1.5), p.y + 3, rand(-15, 15), rand(10, 40), o); }
+      if (p.vy >= 0) { dead = true; explode(p.x, p.y, p.shot); }
+    }
+    if (dead) {
+      if (p.onDie && p.kind !== 1) { try { p.onDie(p); } catch (e) { } }
+      active[i] = active[active.length - 1]; active.pop();
+      p.onDie = null; p.shot = null; pool.push(p);
+    }
+  }
+  flash.a *= Math.exp(-dt * 7);
+}
+function drawParticles() {
+  const c = fx, glow = Q().glow;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, W, H);
+  c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+  const rf = reduceFlash();
+  for (let i = 0; i < active.length; i++) {
+    const p = active[i], f = p.age / p.life;
+    let a = f < p.fade ? 1 : 1 - (f - p.fade) / (1 - p.fade);
+    if (p.flick && f > .45) a *= rf ? (.8 + .2 * Math.sin(p.age * 14 + p.seed)) : (Math.random() < .35 ? .25 : 1);
+    if (a <= .02) continue;
+    if (p.tn > 1) {
+      c.globalAlpha = a * .5; c.strokeStyle = p.c; c.lineWidth = p.size * .75;
+      c.beginPath(); let j = (p.hi - p.tn + 33) & 31; c.moveTo(p.hx[j], p.hy[j]);
+      for (let n = 1; n < p.tn; n++) { j = (j + 1) & 31; c.lineTo(p.hx[j], p.hy[j]); }
+      c.lineTo(p.x, p.y); c.stroke();
+    }
+    const r = p.size * glow * (1 - f * p.shrink) * (p.kind === 1 ? 1.4 : 1);
+    c.globalAlpha = a; c.drawImage(sprite(p.c), p.x - r, p.y - r, r * 2, r * 2);
+  }
+  c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+}
+function render(t, dt) {
+  drawSky(t, dt);
+  // 섬광 (과하지 않게, 줄이기 설정 시 더 약하게)
+  if (flash.a > .01) {
+    const [r, g, b] = hexRgb(flash.c), m = reduceFlash() ? .02 : .075;
+    ctx.fillStyle = `rgba(${(r + 255) >> 1},${(g + 255) >> 1},${(b + 255) >> 1},${(flash.a * m).toFixed(3)})`; ctx.fillRect(0, 0, W, groundY);
+  }
+  drawParticles();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(fxc, 0, 0); ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(fgc, 0, 0);
+  // 수면 반사: 위아래 뒤집고 물결에 따라 흔들리게
+  if (hasWater && groundY < H) {
+    const step = Q().refl, depth = H - groundY, sq = clamp(groundY * .8 / depth, 1.6, 3.2);
+    ctx.globalCompositeOperation = 'lighter';
+    for (let y = groundY; y < H; y += step) {
+      const d = y - groundY, k = d / depth, srcY = groundY - (d + step) * sq;
+      if (srcY < 0) break;
+      const off = Math.sin(y * .09 + t * 1.8) * (1.5 + k * 6) + Math.sin(y * .23 - t * 2.6) * 1.2;
+      ctx.globalAlpha = .32 * (1 - k * .75);
+      ctx.drawImage(fxc, 0, srcY * DPR, fxc.width, step * sq * DPR, off * DPR, y * DPR, fxc.width, step * DPR);
+    }
+    if (flash.a > .01) { const [r, g, b] = hexRgb(flash.c); ctx.globalAlpha = flash.a * (reduceFlash() ? .015 : .05); ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fillRect(0, groundY * DPR, W * DPR, depth * DPR); }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+}
+
+/* =========================================================
+   소리 (Web Audio 합성)
+   ========================================================= */
+const sfx = {
+  ctx: null, master: null, noise: null, ok: true, recent: [], warned: false,
+  init() {
+    if (this.ctx || !this.ok) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { this.fail(); return; }
+    try {
+      const c = new AC(); this.ctx = c;
+      const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6;
+      this.master = c.createGain(); this.master.connect(comp); comp.connect(c.destination);
+      const len = c.sampleRate * 2, b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.noise = b; this.applyVolume();
+    } catch (e) { this.fail(); }
+  },
+  fail() { this.ok = false; this.ctx = null; if (S().sound && !this.warned) { this.warned = true; toast('이 기기에서는 소리를 쓸 수 없어요. 소리 없이 계속할게요'); } },
+  unlock() {
+    if (!S().sound) return;
+    this.init();
+    if (this.ctx && this.ctx.state !== 'running') { try { const r = this.ctx.resume(); r && r.catch && r.catch(() => { }); } catch (e) { } }
+  },
+  live() { return !!(this.ctx && this.ok && S().sound && this.ctx.state === 'running'); },
+  applyVolume() { if (this.master) this.master.gain.value = S().sound ? S().volume : 0; },
+  out(x, vol) {
+    const c = this.ctx, g = c.createGain(); g.gain.value = vol;
+    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = clamp((x / W) * 2 - 1, -1, 1) * .85; g.connect(p); p.connect(this.master); }
+    else g.connect(this.master);
+    return g;
+  },
+  src() { const s = this.ctx.createBufferSource(); s.buffer = this.noise; s.loop = true; return s; },
+  throttle(max, win) { const n = this.ctx.currentTime; this.recent = this.recent.filter(t => n - t < win); if (this.recent.length >= max) return false; this.recent.push(n); return true; },
+  /* 발사 "슈우": 대역 통과 잡음 주파수를 올리며 */
+  launch(x, dur) {
+    if (!this.live() || !this.throttle(10, .4)) return;
+    const c = this.ctx, t0 = c.currentTime, d = clamp(dur, .4, 1.6);
+    const s = this.src(), bp = c.createBiquadFilter(), g = c.createGain();
+    bp.type = 'bandpass'; bp.Q.value = 5; bp.frequency.setValueAtTime(700, t0); bp.frequency.exponentialRampToValueAtTime(3400, t0 + d);
+    g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(.22, t0 + .08); g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+    s.connect(bp); bp.connect(g); g.connect(this.out(x, .55));
+    s.start(t0, Math.random()); s.stop(t0 + d + .05);
+  },
+  /* 폭발 "펑": 저역 잡음 + 낮은 쿵 소리, 높이(거리)에 따라 지연 */
+  bang(x, y, size, extraDelay) {
+    if (!this.live() || !this.throttle(12, .4)) return;
+    const c = this.ctx, far = clamp(1 - y / Math.max(1, groundY), 0, 1);
+    const t0 = c.currentTime + .03 + far * .32 + (extraDelay || 0);
+    const sz = clamp(size, .1, 1.3), dur = .5 + sz * 1.1, vol = (.45 + sz * .55) * (1 - far * .3);
+    const out = this.out(x, vol);
+    const s = this.src(), lp = c.createBiquadFilter(), g = c.createGain();
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(2600 - sz * 1500 - far * 500, t0); lp.frequency.exponentialRampToValueAtTime(300, t0 + dur);
+    g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(1, t0 + .012); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    s.connect(lp); lp.connect(g); g.connect(out); s.start(t0, Math.random()); s.stop(t0 + dur + .05);
+    const o = c.createOscillator(), og = c.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(120 - sz * 60, t0); o.frequency.exponentialRampToValueAtTime(35, t0 + .35);
+    og.gain.setValueAtTime(.0001, t0); og.gain.exponentialRampToValueAtTime(.9 * sz + .2, t0 + .01); og.gain.exponentialRampToValueAtTime(.0001, t0 + .45);
+    o.connect(og); og.connect(out); o.start(t0); o.stop(t0 + .5);
+  },
+  /* 잔 불꽃 "지직": 짧은 고음 잡음을 흩뿌림 */
+  crackle(x, y, delay, count) {
+    if (!this.live() || !this.throttle(14, .5)) return;
+    const c = this.ctx, far = clamp(1 - y / Math.max(1, groundY), 0, 1), base = c.currentTime + delay + far * .32;
+    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2500; hp.connect(this.out(x, .5));
+    for (let i = 0; i < count; i++) {
+      const t0 = base + Math.random() * .55, s = this.src(), g = c.createGain(), d = .006 + Math.random() * .014;
+      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(.2 + Math.random() * .35, t0 + .002); g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+      s.connect(g); g.connect(hp); s.start(t0, Math.random()); s.stop(t0 + d + .01);
+    }
+  }
+};
+let lastVib = 0;
+function vibrate(ms) {
+  if (!S().vibrate || !navigator.vibrate) return;
+  const now = performance.now(); if (now - lastVib < 90) return;
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
+  lastVib = now; try { navigator.vibrate(ms); } catch (e) { }
+}
+
+/* =========================================================
+   쇼 (기본 쇼 4종 + 나만의 쇼 재생)
+   ========================================================= */
+const BUILTIN = [
+  { id: 'calm', name: '잔잔한 밤', desc: '천천히 한 발씩' },
+  { id: 'festival', name: '축제', desc: '다양한 종류가 계속' },
+  { id: 'romantic', name: '로맨틱', desc: '하트·분홍·금빛 위주' },
+  { id: 'finale', name: '그랜드 피날레', desc: '점점 빨라져 한꺼번에 터지는 마무리' }
+];
+const showName = id => (BUILTIN.find(b => b.id === id) || state.shows.find(s => s.id === id) || {}).name;
+function autoFire(type, pal, rx, ry, scale) {
+  const x = W * (rx ?? rand(.15, .85)), y = (ry !== undefined ? H * ry : rand(H * .14, Math.min(H * .48, groundY - H * .15)));
+  launch(x, y, resolveShot(type, pal, { scale: scale || rand(.9, 1.12) }));
+}
+const player = {
+  cur: null,
+  start(id) {
+    const b = BUILTIN.find(x => x.id === id), u = !b && state.shows.find(x => x.id === id);
+    if (!b && !u) { toast('쇼를 찾을 수 없어요'); return false; }
+    if (u && !u.events.length) { toast('이 쇼에는 기록된 불꽃이 없어요'); return false; }
+    this.cur = { id, builtin: !!b, t: 0, next: .3, i: 0, wait: 0 };
+    setSetting('selectedShow', id); refreshAuto(); showPlaying(); return true;
+  },
+  stop(msg) { if (!this.cur) return; this.cur = null; refreshAuto(); showPlaying(); if (msg) toast(msg); },
+  update(dt) {
+    const c = this.cur; if (!c) return;
+    dt *= S().playSpeed; c.t += dt;
+    if (c.builtin) {
+      c.next -= dt;
+      if (c.id === 'calm') { if (c.next <= 0) { autoFire(pick(['chrys', 'peony', 'willow', 'ring', 'chrys']), pick(['gold', 'blue', 'white', 'pink']), rand(.2, .8)); c.next = rand(2.3, 3.4); } }
+      else if (c.id === 'festival') { if (c.next <= 0) { autoFire('random', 'random'); if (Math.random() < .25) autoFire('random', 'random'); c.next = rand(.45, 1.05); } }
+      else if (c.id === 'romantic') {
+        if (c.next <= 0) {
+          const r = Math.random(), t = r < .45 ? 'heart' : r < .65 ? 'peony' : r < .8 ? 'chrys' : r < .9 ? 'ring' : 'willow';
+          autoFire(t, t === 'heart' ? pick(['pink', 'pink', 'red']) : pick(['pink', 'gold', 'gold'])); c.next = rand(1.1, 1.7);
+        }
+      } else if (c.id === 'finale') {
+        if (c.t < 34) { if (c.next <= 0) { autoFire(pick(['chrys', 'peony', 'ring', 'star', 'willow', 'double', 'popper']), 'random'); const k = Math.pow(c.t / 34, 1.3); c.next = 1.6 - (1.6 - .16) * k; } }
+        else if (!c.barrage) {
+          c.barrage = true;
+          for (let i = 0; i < 18; i++) later(i * .09 / S().playSpeed, () => autoFire(pick(['peony', 'chrys', 'willow', 'falls', 'peony']), pick(['gold', 'white', 'rainbow', 'gold']), rand(.1, .9), undefined, rand(1, 1.25)));
+        } else if (c.t > 42) { if (S().repeat) { c.t = 0; c.next = .5; c.barrage = false; } else this.stop('쇼가 끝났어요'); }
+      }
+    } else {
+      const s = state.shows.find(x => x.id === c.id); if (!s) { this.stop(); return; }
+      if (c.wait > 0) { c.wait -= dt; if (c.wait <= 0) { c.t = 0; c.i = 0; } return; }
+      const ms = c.t * 1000;
+      while (c.i < s.events.length && s.events[c.i].t <= ms) { playEvent(s.events[c.i]); c.i++; }
+      if (c.i >= s.events.length) { if (S().repeat) { c.wait = 1.5; } else this.stop('쇼가 끝났어요'); }
+    }
+  }
+};
+function playEvent(e) {
+  const x = e.x * W, y = e.y * H;
+  if (e.type === 'text') { fireText(e.text, e.pal, x, y, false); return; }
+  launch(x, y, { type: e.type, pal: 'gold', c1: e.c1, c2: e.c2, scale: 1 });
+}
+
+/* ---------- 녹화 ---------- */
+let rec = null;
+function recordShot(x, y, info) {
+  if (!rec) return;
+  rec.events.push(Object.assign({ t: Math.round((engineTime - rec.start) * 1000), x: +(x / W).toFixed(4), y: +(y / H).toFixed(4) }, info));
+}
+function startRecording() {
+  rec = { start: engineTime, events: [] };
+  $('#rec').hidden = false; updateRecTime();
+  toast('녹화 중이에요. 화면을 눌러 불꽃을 쏘아 보세요');
+}
+function updateRecTime() { if (rec) $('#recTime').textContent = `녹화 중 ${fmtDur((engineTime - rec.start) * 1000)}`; }
+async function stopRecording() {
+  if (!rec) return;
+  const r = rec; rec = null; $('#rec').hidden = true;
+  if (!r.events.length) { toast('기록된 불꽃이 없어서 저장하지 않았어요'); return; }
+  for (;;) {
+    const name = await promptName('쇼 저장', `불꽃 ${r.events.length}발 · ${fmtDur(r.events[r.events.length - 1].t)} 길이로 기록했어요. 이름을 붙여 저장하세요.`, `내 쇼 ${state.shows.length + 1}`, '저장');
+    if (name != null) { saveRecorded(r, name); return; }
+    const discard = await confirmDlg('녹화 버리기', '저장하지 않으면 이번 녹화가 사라져요. 버릴까요?', '버리기', '이름 붙여 저장', true);
+    if (discard) { toast('녹화를 버렸어요'); return; }
+  }
+}
+function saveRecorded(r, name) {
+  const t0 = r.events[0].t, now = Date.now();
+  const show = { id: uid('s_'), name, createdAt: now, updatedAt: now, events: r.events.map(e => ({ ...e, t: e.t - t0 + 300 })) };
+  state.shows.push(show); save('shows');
+  toast(`‘${name}’ 쇼를 저장했어요`);
+}
+
+/* =========================================================
+   카운트다운
+   ========================================================= */
+let cdFired = false;
+function cdTarget() { return new Date(state.countdown.target).getTime(); }
+function cdLabel() { const d = new Date(state.countdown.target); const midnight = d.getHours() === 0 && d.getMinutes() === 0; const p = midnight ? new Date(d.getTime() - 864e5) : d; return midnight ? `${p.getMonth() + 1}월 ${p.getDate()}일 24:00` : `${d.getMonth() + 1}월 ${d.getDate()}일 ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function cdStartShow() {
+  const id = state.countdown.showId;
+  if (!player.start(id)) player.start('finale');
+  later(.4, () => fireText('새해 복 많이 받으세요', 'gold', W / 2, H * .3, false));
+  if (!sfx.live() && S().sound) toast('소리를 들으려면 화면을 한 번 눌러 주세요');
+}
+function cdFinish() { state.countdown.active = false; state.countdown.updatedAt = Date.now(); save('countdown'); $('#cd').hidden = true; }
+function cdTick() {
+  const el = $('#cd'), c = state.countdown;
+  if (!c.active) { el.hidden = true; return; }
+  const left = cdTarget() - Date.now();
+  if (left <= 0) {
+    if (cdFired) return; cdFired = true; cdFinish();
+    if (left < -5000) askLateStart(); else cdStartShow();
+    return;
+  }
+  el.hidden = false;
+  const s = Math.ceil(left / 1000), dd = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
+  el.classList.toggle('final', s <= 10);
+  el.querySelector('.lbl').textContent = s <= 10 ? '' : `${cdLabel()}까지`;
+  el.querySelector('.big').textContent = s <= 10 ? String(s) : (dd ? `${dd}일 ` : '') + `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+}
+async function askLateStart() {
+  const ok = await confirmDlg('카운트다운 시각이 지났어요', `${esc(cdLabel())} 카운트다운이 앱이 닫혀 있거나 가려진 동안 지나갔어요. 지금 바로 쇼를 시작할까요?`, '지금 시작', '아니요');
+  if (ok) cdStartShow();
+}
+function startCountdown(target, showId) {
+  state.countdown = { target, showId, active: true, updatedAt: Date.now() }; save('countdown');
+  cdFired = false; cdTick();
+}
+
+/* =========================================================
+   화면 (UI)
+   ========================================================= */
+const ICON = {
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>', close: '<path d="M6 6l12 12M18 6L6 18"/>', back: '<path d="M15 5l-7 7 7 7"/>',
+  camera: '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>',
+  full: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', unfull: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
+  soundOn: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',
+  soundOff: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9.5l5 5M22 9.5l-5 5"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  file: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', trash: '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',
+  down: '<path d="M6 9l6 6 6-6"/>', up: '<path d="M6 15l6-6 6 6"/>'
+};
+const ic = (n, label) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>${label ? `<span class="sr">${label}</span>` : ''}`;
+const playIco = '<svg class="f" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>';
+const stopIco = '<svg class="f" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+
+/* 불꽃 종류 칩의 작은 미리보기 (점들이 마우스를 올리면 반짝임) */
+function typeSvg(id) {
+  const pts = []; const P = (x, y, r, c) => pts.push([x, y, r, c]);
+  const C = (i) => 'c' + (i % 3 + 1);
+  if (id === 'chrys') { for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; for (const r of [5, 8, 11]) P(14 + Math.cos(a) * r, 14 + Math.sin(a) * r, r === 11 ? 1.6 : 1, C(i)); } }
+  else if (id === 'peony') { for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; P(14 + Math.cos(a) * 10, 14 + Math.sin(a) * 10, 2, C(i)); } for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + .5; P(14 + Math.cos(a) * 5, 14 + Math.sin(a) * 5, 2, C(i + 1)); } }
+  else if (id === 'willow') { for (let i = 0; i < 7; i++) { const a = Math.PI + i / 6 * Math.PI; for (let s = 1; s <= 5; s++) { const r = s * 2.2; P(14 + Math.cos(a) * r, 9 + Math.sin(a) * r + s * s * .45, s === 5 ? 1.4 : 1, 'c1'); } } }
+  else if (id === 'ring') { for (let i = 0; i < 16; i++) { const a = i / 16 * 6.283; P(14 + Math.cos(a) * 10.5, 14 + Math.sin(a) * 10.5, 1.5, C(i)); } }
+  else if (id === 'heart') { for (let i = 0; i < 18; i++) { const t = i / 18 * 6.283; P(14 + 16 * Math.pow(Math.sin(t), 3) * .68, 13 - (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * .68, 1.5, 'c2'); } }
+  else if (id === 'star') { const V = []; for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, r = j % 2 ? 5 : 12; V.push([14 + Math.cos(a) * r, 15 + Math.sin(a) * r]); } for (let j = 0; j < 10; j++) { const A = V[j], B = V[(j + 1) % 10]; P(A[0], A[1], 1.5, 'c1'); P((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, 1.1, 'c1'); } }
+  else if (id === 'double') { for (const [cx, cy, c] of [[8, 8, 'c1'], [20, 9, 'c2'], [9, 20, 'c3'], [20, 20, 'c1']]) { for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; P(cx + Math.cos(a) * 3.6, cy + Math.sin(a) * 3.6, 1.1, c); } P(cx, cy, 1.4, c); } }
+  else if (id === 'falls') { for (let i = 0; i < 7; i++) { const x = 4 + i * 3.4; for (let s = 0; s < 5; s++) P(x, 5 + s * 4.4, s === 0 ? 1.6 : 1.1, s === 0 ? 'c1' : (i % 2 ? 'c3' : 'c1')); } }
+  else if (id === 'popper') { for (const [cx, cy, c] of [[8, 9, 'c2'], [19, 7, 'c3'], [15, 19, 'c1']]) for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; P(cx + Math.cos(a) * 3.5, cy + Math.sin(a) * 3.5, 1.2, c); } }
+  else { const r = mulberry(5); for (let i = 0; i < 18; i++) P(3 + r() * 22, 3 + r() * 22, .9 + r() * 1.2, C(i)); }
+  return `<svg viewBox="0 0 28 28" aria-hidden="true">${pts.map(([x, y, r, c]) => `<circle class="tw ${c}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}"/>`).join('')}</svg>`;
+}
+function palBg(id) { const c = id === 'random' ? ['#ff4d5e', '#ffd56b', '#3ee6d2', '#ff5fa2', '#4d9bff', '#ffffff', '#ff4d5e'] : PALETTES[id].c.concat(PALETTES[id].c[0]); return `background:conic-gradient(${c.join(',')})`; }
+
+/* ---------- 컨트롤 바 ---------- */
+function buildBar() {
+  $('#typeRow').innerHTML = TYPES.map(t => `<button class="chip" type="button" data-type="${t.id}" aria-pressed="false" title="${t.name}">${typeSvg(t.id)}<span>${t.name}</span></button>`).join('');
+  $('#palRow').innerHTML = PAL_IDS.map(p => `<button class="sw" type="button" data-pal="${p}" aria-pressed="false" aria-label="${PALETTES[p].name}" title="${PALETTES[p].name}" style="${palBg(p)}">${p === 'random' ? '?' : ''}</button>`).join('');
+  $('#menuBtn').innerHTML = ic('menu'); $('#menuBtn2').innerHTML = ic('menu');
+  $('#photoBtn').innerHTML = ic('camera'); $('#barToggle').innerHTML = ic('down'); $('#barOpen').innerHTML = ic('up');
+  $('#shBack').innerHTML = ic('back'); $('#shClose').innerHTML = ic('close');
+  $('#typeRow').addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) { setSetting('type', b.dataset.type); refreshBar(); } });
+  $('#palRow').addEventListener('click', e => { const b = e.target.closest('[data-pal]'); if (b) { setSetting('palette', b.dataset.pal); refreshBar(); } });
+  $('#autoBtn').onclick = () => { userGesture(); player.cur ? player.stop() : player.start(S().selectedShow) || player.start('festival'); };
+  $('#soundBtn').onclick = () => { setSetting('sound', !S().sound); if (S().sound) sfx.unlock(); sfx.applyVolume(); refreshBar(); toast(S().sound ? (sfx.ok ? '소리를 켰어요' : '이 기기에서는 소리를 쓸 수 없어요') : '소리를 껐어요'); };
+  $('#menuBtn').onclick = () => openSheet(); $('#menuBtn2').onclick = () => openSheet();
+  $('#barToggle').onclick = () => { setSetting('barCollapsed', true); refreshBar(); $('#barOpen').focus(); };
+  $('#barOpen').onclick = () => { setSetting('barCollapsed', false); refreshBar(); $('#barToggle').focus(); };
+  $('#photoBtn').onclick = savePhoto; $('#fsBtn').onclick = toggleFS;
+  $('#recStop').onclick = stopRecording;
+  refreshBar(); refreshFS();
+}
+function refreshBar() {
+  document.querySelectorAll('#typeRow .chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === S().type));
+  document.querySelectorAll('#palRow .sw').forEach(b => b.setAttribute('aria-pressed', b.dataset.pal === S().palette));
+  $('#palName').textContent = '색상 · ' + PALETTES[S().palette].name;
+  const so = $('#soundBtn'); so.innerHTML = ic(S().sound ? 'soundOn' : 'soundOff'); so.setAttribute('aria-label', S().sound ? '소리 끄기' : '소리 켜기'); so.title = S().sound ? '소리 끄기' : '소리 켜기';
+  const bar = $('#bar'); bar.classList.toggle('collapsed', S().barCollapsed);
+  $('#barOpen').hidden = !S().barCollapsed; $('#barToggle').setAttribute('aria-expanded', !S().barCollapsed);
+  refreshAuto();
+}
+function refreshAuto() {
+  const on = !!player.cur, b = $('#autoBtn');
+  b.classList.toggle('on', on); $('#autoIco').innerHTML = on ? stopIco : playIco;
+  $('#autoIco').firstChild.style.cssText = 'width:18px;height:18px;flex:none';
+  $('#autoTxt').textContent = on ? '정지' : '자동 쇼';
+  $('#autoName').textContent = showName(on ? player.cur.id : S().selectedShow) || '';
+  b.setAttribute('aria-label', on ? `자동 쇼 정지 (${showName(player.cur.id)})` : `자동 쇼 시작 (${showName(S().selectedShow) || '축제'})`);
+  if (sheetPage === 'shows') renderPage();
+}
+function showPlaying() {
+  const el = $('#playing');
+  el.textContent = player.cur ? `▶ ${showName(player.cur.id)} 재생 중${S().playSpeed !== 1 ? ` · ${S().playSpeed}x` : ''}` : '';
+  if (player.cur) showEdge(); else el.classList.add('hide');
+}
+
+/* ---------- 가장자리 버튼 자동 숨김 ---------- */
+let edgeTimer = 0;
+function showEdge() {
+  $('#edge').classList.remove('hide'); if (player.cur) $('#playing').classList.remove('hide');
+  clearTimeout(edgeTimer);
+  edgeTimer = setTimeout(() => { if ($('#edge').contains(document.activeElement)) return showEdge(); $('#edge').classList.add('hide'); $('#playing').classList.add('hide'); }, 3500);
+}
+$('#edge').addEventListener('focusin', showEdge);
+
+/* ---------- 토스트 ---------- */
+let toastTimer = 0;
+function hideToast() { $('#toast').classList.remove('on'); }
+function toast(msg, opt = {}) {
+  const t = $('#toast');
+  if (opt.soft && t.classList.contains('on')) return; $('#toastMsg').textContent = msg;
+  const old = t.querySelector('.btn'); if (old) old.remove();
+  t.classList.toggle('has-act', !!opt.action);
+  if (opt.action) { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = opt.action.label; b.onclick = () => { hideToast(); opt.action.fn(); }; t.appendChild(b); }
+  t.classList.add('on'); clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, opt.duration || (opt.action ? 6000 : 2800));
+}
+
+/* ---------- 대화상자 ---------- */
+let dlgCancel = null;
+function dialog({ title, html = '', input = null, buttons, validate = null }) {
+  if (dlgCancel) dlgCancel();
+  return new Promise(res => {
+    const wrap = $('#dlgWrap'), d = $('#dlg'), prev = document.activeElement;
+    d.innerHTML = `<h3 id="dlgT">${esc(title)}</h3><div class="body">${html}</div>` +
+      (input ? `<div class="field"><input type="text" id="dlgIn" maxlength="${input.max || 40}" value="${esc(input.value || '')}" aria-label="${esc(input.label || title)}" autocomplete="off"><div class="err" id="dlgErr" aria-live="polite"></div></div>` : '') +
+      `<div class="btns">${buttons.map((b, i) => `<button class="btn ${b.kind || ''}" data-i="${i}" type="button">${esc(b.label)}</button>`).join('')}</div>`;
+    const done = v => { wrap.classList.remove('on'); dlgCancel = null; document.removeEventListener('keydown', onKey, true); try { prev && prev.focus && prev.focus(); } catch (e) { } res(v); };
+    dlgCancel = () => done(null);
+    const inp = $('#dlgIn'), primary = d.querySelector('.btns .primary');
+    const check = () => { if (inp && validate && primary) primary.disabled = !!validate(inp.value); };
+    if (inp) inp.addEventListener('input', () => { $('#dlgErr').textContent = ''; check(); });
+    d.querySelectorAll('.btns button').forEach(btn => btn.onclick = () => {
+      const b = buttons[+btn.dataset.i];
+      if (inp && b.value != null) { const er = validate && validate(inp.value); if (er) { $('#dlgErr').textContent = er; inp.focus(); return; } done({ value: b.value, input: inp.value.trim() }); }
+      else done(b.value);
+    });
+    const onKey = e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null); }
+      else if (e.key === 'Enter' && inp && e.target === inp) { e.preventDefault(); primary && !primary.disabled && primary.click(); }
+      else if (e.key === 'Tab') { const f = [...d.querySelectorAll('button,input')].filter(x => !x.disabled); if (!f.length) return; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } }
+    };
+    document.addEventListener('keydown', onKey, true);
+    wrap.onclick = e => { if (e.target === wrap) done(null); };
+    wrap.classList.add('on'); check();
+    setTimeout(() => { const f = inp || primary || d.querySelector('.btns button'); f && f.focus(); if (inp) inp.select(); }, 30);
+  });
+}
+const confirmDlg = (title, html, ok = '확인', cancel = '취소', danger = false) =>
+  dialog({ title, html, buttons: [{ label: cancel, value: false }, { label: ok, value: true, kind: danger ? 'danger' : 'primary' }] }).then(v => v === true);
+const alertDlg = (title, html) => dialog({ title, html, buttons: [{ label: '확인', value: true, kind: 'primary' }] });
+const promptName = (title, desc, def, ok) => dialog({
+  title, html: `<p>${esc(desc)}</p>`, input: { value: def, max: 40, label: '쇼 이름' },
+  validate: v => v.trim() ? '' : '이름을 입력해 주세요',
+  buttons: [{ label: '취소', value: null }, { label: ok, value: true, kind: 'primary' }]
+}).then(v => v && v.input ? v.input : null);
+
+/* ---------- 화면 모드 ---------- */
+const mqlLight = (() => { try { return matchMedia('(prefers-color-scheme: light)'); } catch (e) { return { matches: false, addEventListener() { } }; } })();
+function applyTheme() {
+  const pref = S().theme, eff = pref === 'system' ? (mqlLight.matches ? 'light' : 'dark') : pref;
+  document.documentElement.setAttribute('data-theme', eff); document.documentElement.setAttribute('data-theme-pref', pref);
+  const lab = { system: '시스템', light: '라이트', dark: '다크' }[pref];
+  $('#themeBtn').innerHTML = `<span class="em" aria-hidden="true">${eff === 'light' ? '☀️' : '🌙'}</span><span>${lab}</span>`;
+  $('#themeBtn').setAttribute('aria-label', `화면 모드: ${pref === 'system' ? '시스템 설정 따르기' : lab}. 눌러서 바꾸기`);
+}
+try { mqlLight.addEventListener('change', () => { if (S().theme === 'system') applyTheme(); }); } catch (e) { }
+$('#themeBtn').onclick = () => { const o = ['system', 'light', 'dark']; setSetting('theme', o[(o.indexOf(S().theme) + 1) % 3]); applyTheme(); if (sheetPage === 'settings') renderPage(); toast('화면 모드: ' + { system: '시스템 설정 따르기', light: '라이트', dark: '다크' }[S().theme]); };
+
+/* ---------- 시트(메뉴) + history API ---------- */
+let sheetPage = null, navDepth = 0, lastFocus = null;
+const PAGES = {
+  home: { t: '메뉴', r: renderHome }, shows: { t: '쇼 목록', r: renderShows }, create: { t: '내 쇼 만들기', r: renderCreate },
+  phrase: { t: '문구 불꽃', r: renderPhrase }, countdown: { t: '카운트다운', r: renderCountdown }, settings: { t: '설정', r: renderSettings },
+  data: { t: '저장·불러오기', r: renderData }, help: { t: '도움말', r: renderHelp }
+};
+function openSheet(page = 'home') {
+  if (sheetPage === null) { lastFocus = document.activeElement; navDepth = 1; history.pushState({ nfw: 'menu', page: 'home', depth: 1 }, ''); showSheet('home', true); }
+  if (page !== 'home') go(page);
+}
+function go(page) { navDepth++; history.pushState({ nfw: 'menu', page, depth: navDepth }, ''); showSheet(page, true); }
+function closeSheet() { if (sheetPage === null) return; const n = navDepth; hideSheet(); navDepth = 0; if (n > 0) history.go(-n); }
+function showSheet(page, focus) {
+  const first = sheetPage === null; sheetPage = page;
+  $('#sheet').classList.add('on'); $('#sheet').setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('on');
+  $('#shTitle').textContent = PAGES[page].t; $('#shBack').style.visibility = page === 'home' ? 'hidden' : 'visible';
+  renderPage(); $('#shBody').scrollTop = 0;
+  if (focus || first) setTimeout(() => { const f = page === 'home' ? $('#shClose') : $('#shBack'); f.focus({ preventScroll: true }); }, 60);
+}
+function hideSheet() {
+  if (sheetPage === null) return; sheetPage = null;
+  $('#sheet').classList.remove('on'); $('#sheet').setAttribute('aria-hidden', 'true'); $('#scrim').classList.remove('on');
+  try { (lastFocus && document.contains(lastFocus) ? lastFocus : $('#menuBtn')).focus({ preventScroll: true }); } catch (e) { }
+}
+function renderPage() { if (sheetPage) $('#shBody').innerHTML = PAGES[sheetPage].r(); }
+$('#shBack').onclick = () => history.back();
+$('#shClose').onclick = closeSheet;
+$('#scrim').onclick = closeSheet;
+let exitArmed = 0;
+window.addEventListener('popstate', e => {
+  const st = e.state || {};
+  if (dlgCancel) dlgCancel();
+  if (st.nfw === 'menu') { navDepth = st.depth || 1; showSheet(st.page in PAGES ? st.page : 'home'); }
+  else if (st.nfw === 'main') { hideSheet(); navDepth = 0; }
+  else {
+    hideSheet(); navDepth = 0;
+    if (Date.now() - exitArmed < 2200) { history.back(); return; }
+    exitArmed = Date.now(); history.pushState({ nfw: 'main' }, ''); toast('뒤로 가기를 한 번 더 누르면 종료돼요');
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !dlgCancel && sheetPage !== null) { e.preventDefault(); history.back(); }
+});
+
+/* ---------- 페이지들 ---------- */
+const tg = (key, on, label, desc = '', dis = false) => `<div class="set"><div class="d"><span class="lab" id="lb_${key}">${label}</span>${desc ? `<span class="s">${desc}</span>` : ''}</div><button class="tg" type="button" role="switch" data-tg="${key}" aria-checked="${on}" aria-labelledby="lb_${key}" ${dis ? 'disabled' : ''}></button></div>`;
+const seg = (key, opts, val, label) => `<div class="field"><span class="lab" id="sg_${key}">${label}</span><div class="seg" role="group" aria-labelledby="sg_${key}">${opts.map(([v, l]) => `<button type="button" data-seg="${key}" data-v="${v}" aria-pressed="${String(v) === String(val)}">${l}</button>`).join('')}</div></div>`;
+function needHint() {
+  const m = state.meta, now = Date.now();
+  if (state.shows.length < 3) return false;
+  if (m.hintHideUntil && now < m.hintHideUntil) return false;
+  return now - (m.lastExportAt || m.firstUseAt || now) > 30 * 864e5;
+}
+function renderHome() {
+  let h = '';
+  if (!storageOK) h += `<div class="banner"><b>저장이 되지 않는 환경이에요</b><span class="small">이 브라우저에서는 데이터를 기기에 저장할 수 없어요. 앱을 닫으면 내 쇼가 사라지니 ‘전체 저장’으로 파일을 만들어 두세요.</span></div>`;
+  if (needHint()) h += `<div class="banner" id="hint"><b>전체 저장을 해 둘까요?</b><span class="small">마지막으로 파일로 저장한 지 30일이 넘었어요. 내 쇼가 ${state.shows.length}개 있어요.</span><div class="row"><button class="btn primary" data-act="export" type="button">전체 저장</button><button class="btn" data-act="hideHint" type="button">닫기</button></div></div>`;
+  const items = [['shows', '🎆', '쇼 목록'], ['create', '🎬', '내 쇼 만들기'], ['phrase', '✨', '문구 불꽃'], ['countdown', '⏳', '카운트다운'], ['settings', '⚙️', '설정'], ['data', '💾', '저장·불러오기'], ['help', '❓', '도움말']];
+  h += `<div class="menu-grid">${items.map(([p, e, t]) => `<button class="btn" type="button" data-go="${p}"><span class="e" aria-hidden="true">${e}</span>${t}</button>`).join('')}</div>`;
+  if (rec) h += `<p class="dim small" style="margin-top:12px">지금 녹화 중이에요. 메뉴를 닫고 화면을 눌러 불꽃을 쏘아 보세요.</p>`;
+  return h;
+}
+function showMeta(s) { const last = s.events.length ? s.events[s.events.length - 1].t : 0; return `불꽃 ${s.events.length}발 · ${fmtDur(last)}`; }
+function renderShows() {
+  const cur = player.cur && player.cur.id;
+  let h = '';
+  if (cur) h += `<button class="btn block primary" type="button" data-act="stop">${stopIco.replace('<svg', '<svg style="width:18px;height:18px"')} ${esc(showName(cur))} 정지</button>`;
+  h += seg('playSpeed', [[0.5, '0.5x'], [1, '1x'], [2, '2x']], S().playSpeed, '재생 속도');
+  h += tg('repeat', S().repeat, '반복 재생', '쇼가 끝나면 처음부터 다시 재생해요');
+  h += `<div class="sec">기본 쇼</div><div class="list">` + BUILTIN.map(b => `<button class="item ${cur === b.id ? 'now' : ''}" type="button" data-act="play" data-id="${b.id}"><span class="main"><span class="tx"><span class="t">${b.name}</span><span class="s">${b.desc}${b.id === 'finale' ? ' · 약 45초' : ''}</span></span><span class="play">${playIco}</span></span></button>`).join('') + `</div>`;
+  h += `<div class="sec">내 쇼 (${state.shows.length})</div>`;
+  if (!state.shows.length) h += `<div class="empty">아직 만든 쇼가 없어요.<br>‘내 쇼 만들기’에서 녹화해 보세요.</div>`;
+  else h += `<div class="list">` + state.shows.map(s => `<div class="item ${cur === s.id ? 'now' : ''}"><button class="main" type="button" data-act="play" data-id="${s.id}" aria-label="${esc(s.name)} 재생"><span class="tx"><span class="t">${esc(s.name)}</span><span class="s num">${showMeta(s)}</span></span><span class="play">${playIco}</span></button>` +
+    `<button class="ibtn" type="button" data-act="rename" data-id="${s.id}" aria-label="${esc(s.name)} 이름 변경" title="이름 변경">${ic('edit')}</button>` +
+    `<button class="ibtn" type="button" data-act="dup" data-id="${s.id}" aria-label="${esc(s.name)} 복제" title="복제">${ic('copy')}</button>` +
+    `<button class="ibtn" type="button" data-act="showFile" data-id="${s.id}" aria-label="${esc(s.name)} 쇼 파일로 저장" title="쇼 파일로 저장">${ic('file')}</button>` +
+    `<button class="ibtn danger" type="button" data-act="delShow" data-id="${s.id}" aria-label="${esc(s.name)} 삭제" title="삭제">${ic('trash')}</button></div>`).join('') + `</div>`;
+  h += `<div class="btnrow" style="margin-top:12px"><button class="btn" type="button" data-act="importShow">쇼 불러오기</button><button class="btn" type="button" data-go="create">새 쇼 녹화</button></div>`;
+  return h;
+}
+function renderCreate() {
+  if (rec) return `<p><b>지금 녹화 중이에요.</b> 메뉴를 닫고 화면을 눌러 불꽃을 쏘아 보세요.</p><button class="btn primary block" type="button" data-act="recStop">녹화 멈추고 저장</button>`;
+  return `<p>‘녹화 시작’을 누른 뒤 화면을 눌러 불꽃을 쏘면 <b>시각·위치·종류·색상</b>이 기록돼요. 화면 위쪽의 ‘멈추기’를 누르면 이름을 붙여 저장할 수 있어요.</p>
+  <p class="dim small">녹화 중에도 하단 바에서 불꽃 종류와 색을 바꿀 수 있고, 길게 눌러 연속 발사·여러 손가락 발사·문구 불꽃도 함께 기록돼요. 저장한 쇼는 ‘쇼 목록’에서 재생·이름 변경·복제·삭제할 수 있어요.</p>
+  <button class="btn primary block" type="button" data-act="recStart">● 녹화 시작</button>`;
+}
+let phDraft = '';
+const glen = s => [...s].length;
+function renderPhrase() {
+  const col = S().phraseColor;
+  let h = `<div class="field"><label for="phIn">문구 (최대 12자)</label><input type="text" id="phIn" maxlength="30" value="${esc(phDraft)}" placeholder="예: 새해 복 많이 받으세요" autocomplete="off" enterkeyhint="send"><div class="row" style="justify-content:space-between"><span class="err" id="phErr" aria-live="polite"></span><span class="counter" id="phCnt">${glen(phDraft.trim())}/12</span></div></div>`;
+  h += `<div class="field"><span class="lab">색상</span><div class="colors" role="group" aria-label="문구 색상">${REAL_PALS.map(p => `<button class="sw" type="button" data-act="phColor" data-v="${p}" aria-pressed="${p === col}" aria-label="${PALETTES[p].name}" title="${PALETTES[p].name}" style="${palBg(p)}"></button>`).join('')}</div><span class="small dim">${PALETTES[col].name}</span></div>`;
+  h += `<div class="btnrow"><button class="btn primary" type="button" data-act="phFire">쏘아 올리기</button><button class="btn" type="button" data-act="phSave">문구 저장</button></div>`;
+  h += `<div class="sec">저장한 문구 (${state.phrases.length})</div>`;
+  if (!state.phrases.length) h += `<div class="empty">자주 쓰는 문구를 저장해 두면 한 번에 쏠 수 있어요.</div>`;
+  else h += `<div class="list">${state.phrases.map(p => `<div class="item"><button class="main" type="button" data-act="phUse" data-id="${p.id}" aria-label="${esc(p.text)} 쏘아 올리기"><span class="tx"><span class="t">${esc(p.text)}</span><span class="s">${PALETTES[p.color].name}</span></span><span class="play">${playIco}</span></button><button class="ibtn danger" type="button" data-act="phDel" data-id="${p.id}" aria-label="${esc(p.text)} 삭제" title="삭제">${ic('trash')}</button></div>`).join('')}</div>`;
+  return h;
+}
+function renderCountdown() {
+  const c = state.countdown;
+  let h = '';
+  if (c.active) h += `<div class="banner"><b>${esc(cdLabel())}까지 카운트다운 중</b><span class="small">0이 되면 ‘${esc(showName(c.showId) || '그랜드 피날레')}’ 쇼와 문구 불꽃이 시작돼요.</span><div class="row"><button class="btn danger" type="button" data-act="cdCancel">카운트다운 취소</button></div></div>`;
+  const opts = BUILTIN.map(b => [b.id, b.name]).concat(state.shows.map(s => [s.id, s.name]));
+  h += `<div class="field"><label for="cdIn">날짜와 시각</label><input type="datetime-local" id="cdIn" value="${esc(c.target)}"><span class="small dim">12월 31일 24:00은 다음 해 1월 1일 0시로 고르면 돼요.</span></div>`;
+  h += `<div class="field"><label for="cdShow">0이 되면 시작할 쇼</label><select id="cdShow">${opts.map(([v, l]) => `<option value="${esc(v)}" ${v === c.showId ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`;
+  h += `<div class="err" id="cdErr" aria-live="polite"></div><button class="btn primary block" type="button" data-act="cdStart">${c.active ? '이 시각으로 다시 시작' : '카운트다운 시작'}</button>`;
+  h += `<p class="dim small">기기 시각을 기준으로 해요. <b>앱을 열어 둔 상태에서만</b> 동작하고, 0이 되면 고른 쇼가 시작되면서 ‘새해 복 많이 받으세요’ 문구 불꽃이 터져요. 앱이 닫혀 있는 동안 시각이 지났다면, 다시 열 때 바로 시작할지 물어봐요.</p>`;
+  return h;
+}
+function renderSettings() {
+  const s = S();
+  let h = `<div class="sec">소리·진동</div>`;
+  h += tg('sound', s.sound, '소리', sfx.ok ? '발사·폭발·잔 불꽃 소리 (첫 터치 뒤에 시작돼요)' : '이 기기에서는 소리를 쓸 수 없어요');
+  h += `<div class="set"><div class="d"><label class="lab" for="vol">볼륨</label></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(s.volume * 100)}" aria-valuetext="${Math.round(s.volume * 100)}%" style="max-width:60%"><span class="num small" id="volV" style="width:42px;text-align:right">${Math.round(s.volume * 100)}%</span></div>`;
+  h += tg('vibrate', s.vibrate, '진동', navigator.vibrate ? '폭발할 때 짧게 진동해요' : '이 기기는 진동을 지원하지 않아요');
+  h += `<div class="sec">화면·효과</div>`;
+  h += tg('reduceFlash', s.reduceFlash, '섬광 효과 줄이기', prm.matches ? '기기의 ‘동작 줄이기’가 켜져 있어 섬광과 움직임을 자동으로 줄이고 있어요' : '터질 때 하늘이 밝아지는 효과와 깜빡임을 약하게 해요');
+  h += tg('gradient', s.gradient, '중심·가장자리 색 그라데이션', '같은 불꽃 안에서 중심과 가장자리 색을 다르게');
+  h += seg('background', [['city', '도시 야경'], ['sea', '바다 위'], ['mountain', '산 위'], ['sky', '밤하늘']], s.background, '배경');
+  h += seg('quality', [['auto', '자동'], ['high', '고품질'], ['normal', '보통'], ['eco', '절약']], s.quality, '품질');
+  h += `<p class="small dim" style="margin-top:-4px">지금: ${Q().name}${s.quality === 'auto' ? ' (프레임이 떨어지면 입자 수와 효과를 자동으로 줄여요)' : ''} · ‘절약’은 배터리를 아껴요</p>`;
+  h += tg('showFps', s.showFps, 'FPS 표시', '화면 왼쪽 위에 초당 프레임 수를 보여줘요');
+  h += tg('wakeLock', s.wakeLock, '화면 꺼짐 방지', 'wakeLock' in navigator ? '앱을 보는 동안 화면이 꺼지지 않게 해요' : '이 브라우저는 지원하지 않아요');
+  h += tg('photoDate', s.photoDate, '사진에 날짜 넣기', '사진 저장 시 오른쪽 아래에 작은 날짜를 넣어요');
+  h += seg('theme', [['system', '시스템 설정 따르기'], ['light', '라이트'], ['dark', '다크']], s.theme, '화면 모드 (메뉴·버튼)');
+  h += `<div class="sec">자동 보관본</div><p class="small dim">덮어쓰기 불러오기나 전체 삭제 직전의 데이터를 최근 2개까지 보관해요.</p>`;
+  if (!state.backups.length) h += `<div class="empty">아직 보관본이 없어요.</div>`;
+  else h += `<div class="list">${state.backups.map((b, i) => `<div class="item"><span class="main" style="cursor:default"><span class="tx"><span class="t num">${fmtDate(b.savedAt)}</span><span class="s">${esc(b.reason || '')} · 내 쇼 ${(b.data.shows || []).length}개, 문구 ${(b.data.phrases || []).length}개</span></span></span><button class="btn" type="button" data-act="restore" data-i="${i}">복원</button></div>`).join('')}</div>`;
+  h += `<div class="sec">데이터</div><button class="btn danger block" type="button" data-act="wipe">전체 삭제</button>`;
+  h += `<p class="small dim" style="text-align:center;margin-top:16px">나의 불꽃놀이 · 버전 ${APP_VERSION}</p>`;
+  return h;
+}
+function renderData() {
+  const m = state.meta;
+  return `<p>내 쇼, 저장한 문구, 카운트다운 설정, 모든 설정을 <b>하나의 .json 파일</b>로 저장하고 불러와요. 기기를 바꾸거나 사이트 데이터를 지우기 전에 저장해 두세요.</p>
+  <p class="small dim num">마지막 전체 저장: ${m.lastExportAt ? fmtDate(m.lastExportAt) : '아직 없음'} · 지금 내 쇼 ${state.shows.length}개, 문구 ${state.phrases.length}개</p>
+  <div class="btnrow"><button class="btn primary" type="button" data-act="export">전체 저장</button><button class="btn" type="button" data-act="import">전체 불러오기</button></div>
+  <p class="small dim">휴대폰에서는 공유 창이 열려요. ‘파일에 저장’이나 드라이브를 고르면 돼요. 불러올 때는 내용을 먼저 보여주고 <b>합치기</b>(기본) 또는 <b>덮어쓰기</b>를 고를 수 있어요.</p>
+  <div class="sec">쇼 한 개씩</div>
+  <p class="small dim">‘쇼 목록’에서 쇼 옆의 저장 버튼으로 쇼 파일을 만들어 친구에게 보낼 수 있어요. 받은 쇼 파일은 여기서 불러오세요.</p>
+  <button class="btn block" type="button" data-act="importShow">쇼 불러오기</button>`;
+}
+function renderHelp() {
+  return `<div class="help">
+  <h3>불꽃 쏘기</h3><ul><li>화면을 누르면 아래에서 불꽃이 솟아올라 누른 높이에서 터져요.</li><li>길게 누른 채 움직이면 연속으로 발사돼요. 여러 손가락으로 동시에 쏠 수도 있어요.</li><li>하단 바에서 불꽃 종류 10가지와 색상 7가지를 고를 수 있어요. ▾ 버튼으로 바를 접을 수 있어요.</li></ul>
+  <h3>자동 쇼</h3><ul><li>▶ 자동 쇼로 고른 쇼를 시작해요. 쇼 목록에서 다른 쇼를 고르고 재생 속도·반복을 정할 수 있어요.</li><li>쇼가 진행되는 동안에도 화면을 눌러 직접 쏠 수 있어요.</li></ul>
+  <h3>나만의 쇼</h3><ul><li>‘내 쇼 만들기’에서 녹화를 시작하고 화면을 눌러 쏜 뒤 ‘멈추기’를 누르면 저장돼요.</li></ul>
+  <h3>문구 불꽃·카운트다운</h3><ul><li>12자까지의 문구가 불꽃 글자로 터져요.</li><li>카운트다운은 앱을 열어 둔 상태에서만 동작해요.</li></ul>
+  <h3>사진·전체 화면</h3><ul><li>오른쪽 위 버튼으로 지금 화면을 사진(PNG)으로 저장하거나 전체 화면으로 볼 수 있어요. 버튼은 잠시 뒤 숨겨지고, 화면을 누르면 다시 나타나요.</li></ul>
+  <h3>주의</h3><ul><li>깜빡이는 빛이 나와요. 빛에 민감하다면 설정에서 ‘섬광 효과 줄이기’를 켜 주세요.</li><li>데이터는 이 기기에만 저장돼요. 정기적으로 ‘전체 저장’을 해 두세요.</li><li>무음 모드나 저전력 모드에서는 소리와 성능이 달라질 수 있어요.</li></ul>
+  </div>`;
+}
+
+/* ---------- 시트 이벤트 ---------- */
+$('#shBody').addEventListener('click', async e => {
+  const g = e.target.closest('[data-go]'); if (g) { go(g.dataset.go); return; }
+  const t = e.target.closest('[data-tg]');
+  if (t) { const k = t.dataset.tg; setSetting(k, !S()[k]); applySetting(k); renderPage(); const nt = $(`#shBody [data-tg="${k}"]`); nt && nt.focus(); return; }
+  const sg = e.target.closest('[data-seg]');
+  if (sg) { const k = sg.dataset.seg; let v = sg.dataset.v; if (k === 'playSpeed') v = +v; setSetting(k, v); applySetting(k); renderPage(); const nb = $(`#shBody [data-seg="${k}"][data-v="${sg.dataset.v}"]`); nb && nb.focus(); return; }
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const id = a.dataset.id, act = a.dataset.act;
+  switch (act) {
+    case 'export': exportAll(); break;
+    case 'import': pickFile('full'); break;
+    case 'importShow': pickFile('show'); break;
+    case 'hideHint': state.meta.hintHideUntil = Date.now() + 7 * 864e5; save('meta'); renderPage(); break;
+    case 'play': userGesture(); if (player.start(id)) closeSheet(); break;
+    case 'stop': player.stop(); renderPage(); break;
+    case 'rename': renameShow(id); break;
+    case 'dup': dupShow(id); break;
+    case 'showFile': exportShow(id); break;
+    case 'delShow': delShow(id); break;
+    case 'recStart': closeSheet(); userGesture(); startRecording(); break;
+    case 'recStop': closeSheet(); stopRecording(); break;
+    case 'phColor': setSetting('phraseColor', a.dataset.v); phDraft = $('#phIn').value; renderPage(); $(`#shBody [data-act="phColor"][data-v="${a.dataset.v}"]`).focus(); break;
+    case 'phFire': { const v = checkPhrase(); if (v) { userGesture(); closeSheet(); fireText(v, S().phraseColor); } break; }
+    case 'phSave': { const v = checkPhrase(); if (!v) break; if (state.phrases.some(p => p.text === v)) { $('#phErr').textContent = '이미 저장한 문구예요'; break; } const now = Date.now(); state.phrases.unshift({ id: uid('p_'), text: v, color: S().phraseColor, createdAt: now, updatedAt: now }); save('phrases'); phDraft = ''; renderPage(); toast('문구를 저장했어요'); break; }
+    case 'phUse': { const p = state.phrases.find(x => x.id === id); if (p) { userGesture(); closeSheet(); fireText(p.text, p.color); } break; }
+    case 'phDel': delPhrase(id); break;
+    case 'cdStart': {
+      const v = $('#cdIn').value, sh = $('#cdShow').value, ts = new Date(v).getTime();
+      if (!v || isNaN(ts)) { $('#cdErr').textContent = '날짜와 시각을 골라 주세요'; break; }
+      if (ts <= Date.now()) { $('#cdErr').textContent = '지금보다 뒤의 시각을 골라 주세요'; break; }
+      startCountdown(v, sh); closeSheet(); toast('카운트다운을 시작했어요. 앱을 열어 두세요'); break;
+    }
+    case 'cdCancel': cdFinish(); renderPage(); toast('카운트다운을 취소했어요'); break;
+    case 'restore': restoreBackup(+a.dataset.i); break;
+    case 'wipe': wipeAll(); break;
+  }
+});
+$('#shBody').addEventListener('input', e => {
+  if (e.target.id === 'phIn') { phDraft = e.target.value; const n = glen(phDraft.trim()); const c = $('#phCnt'); c.textContent = `${n}/12`; c.style.color = n > 12 ? 'var(--danger)' : ''; $('#phErr').textContent = n > 12 ? '12자까지만 쓸 수 있어요' : ''; }
+  if (e.target.id === 'vol') { const v = +e.target.value; setSetting('volume', v / 100); sfx.applyVolume(); $('#volV').textContent = v + '%'; e.target.setAttribute('aria-valuetext', v + '%'); }
+});
+$('#shBody').addEventListener('keydown', e => { if (e.target.id === 'phIn' && e.key === 'Enter') { e.preventDefault(); $('#shBody [data-act="phFire"]').click(); } });
+function checkPhrase() {
+  const v = ($('#phIn').value || '').trim(), n = glen(v), er = $('#phErr');
+  if (!n) { er.textContent = '문구를 입력해 주세요'; $('#phIn').focus(); return null; }
+  if (n > 12) { er.textContent = `너무 길어요. 12자까지만 쓸 수 있어요 (지금 ${n}자)`; $('#phIn').focus(); return null; }
+  return v;
+}
+function applySetting(k) {
+  if (k === 'sound' || k === 'volume') { if (S().sound) sfx.unlock(); sfx.applyVolume(); refreshBar(); }
+  else if (k === 'background') { resize(); }
+  else if (k === 'quality') { setLevel(S().quality === 'high' ? 0 : S().quality === 'normal' ? 1 : S().quality === 'eco' ? 2 : 0); }
+  else if (k === 'showFps') { $('#fps').hidden = !S().showFps; }
+  else if (k === 'wakeLock') { S().wakeLock ? requestWake() : releaseWake(); }
+  else if (k === 'theme') { applyTheme(); }
+  else if (k === 'playSpeed') { showPlaying(); }
+}
+function applyAll() { applyTheme(); refreshBar(); sfx.applyVolume(); $('#fps').hidden = !S().showFps; applySetting('quality'); resize(); if (!state.countdown.active) $('#cd').hidden = true; cdFired = false; }
+
+/* ---------- 쇼 관리 ---------- */
+async function renameShow(id) {
+  const s = state.shows.find(x => x.id === id); if (!s) return;
+  const name = await promptName('이름 변경', '새 이름을 입력하세요.', s.name, '변경');
+  if (name == null) return;
+  s.name = name; s.updatedAt = Date.now(); save('shows'); renderPage(); refreshAuto(); toast('이름을 바꿨어요');
+}
+function dupShow(id) {
+  const s = state.shows.find(x => x.id === id); if (!s) return;
+  const now = Date.now(), c = JSON.parse(JSON.stringify(s)); c.id = uid('s_'); c.name = (s.name + ' 복사본').slice(0, 46); c.createdAt = c.updatedAt = now;
+  state.shows.splice(state.shows.indexOf(s) + 1, 0, c); save('shows'); renderPage(); toast('쇼를 복제했어요');
+}
+async function delShow(id) {
+  const i = state.shows.findIndex(x => x.id === id); if (i < 0) return; const s = state.shows[i];
+  if (!await confirmDlg('쇼 삭제', `‘${esc(s.name)}’ 쇼를 삭제할까요?`, '삭제', '취소', true)) return;
+  if (player.cur && player.cur.id === id) player.stop();
+  state.shows.splice(i, 1); save('shows'); renderPage();
+  toast(`‘${s.name}’ 쇼를 삭제했어요`, { action: { label: '되돌리기', fn: () => { state.shows.splice(Math.min(i, state.shows.length), 0, s); save('shows'); renderPage(); toast('되돌렸어요'); } } });
+}
+async function delPhrase(id) {
+  const i = state.phrases.findIndex(x => x.id === id); if (i < 0) return; const p = state.phrases[i];
+  if (!await confirmDlg('문구 삭제', `‘${esc(p.text)}’ 문구를 삭제할까요?`, '삭제', '취소', true)) return;
+  state.phrases.splice(i, 1); save('phrases'); renderPage();
+  toast('문구를 삭제했어요', { action: { label: '되돌리기', fn: () => { state.phrases.splice(Math.min(i, state.phrases.length), 0, p); save('phrases'); renderPage(); toast('되돌렸어요'); } } });
+}
+
+/* ---------- 파일 저장·공유 ---------- */
+async function shareOrDownload(blob, name, type, title) {
+  try {
+    const file = new File([blob], name, { type });
+    if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title });
+      return 'shared';
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return 'cancel'; /* 그 밖의 오류는 다운로드로 */ }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return 'downloaded';
+}
+async function exportAll() {
+  const payload = exportPayload('full', { settings: state.settings, shows: state.shows, phrases: state.phrases, countdown: state.countdown });
+  const r = await shareOrDownload(new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' }), `불꽃놀이_백업_${fmtDate(Date.now(), false)}.json`, 'application/json', '나의 불꽃놀이 백업');
+  if (r === 'cancel') { toast('저장을 취소했어요'); return; }
+  state.meta.lastExportAt = Date.now(); save('meta'); renderPage();
+  toast(r === 'shared' ? '백업 파일을 공유했어요' : '백업 파일을 저장했어요');
+}
+async function exportShow(id) {
+  const s = state.shows.find(x => x.id === id); if (!s) return;
+  const payload = exportPayload('show', { shows: [s] });
+  const safe = s.name.replace(/[\\/:*?"<>|]/g, '_').slice(0, 30);
+  const r = await shareOrDownload(new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' }), `불꽃쇼_${safe}.json`, 'application/json', `불꽃 쇼 ‘${s.name}’`);
+  if (r === 'cancel') toast('저장을 취소했어요'); else toast('쇼 파일을 만들었어요');
+}
+let importMode = 'full';
+function pickFile(mode) { importMode = mode; const f = $('#fileIn'); f.value = ''; f.click(); }
+$('#fileIn').addEventListener('change', async () => {
+  const f = $('#fileIn').files[0]; if (!f) return;
+  if (f.size > 8e6) { await alertDlg('불러올 수 없어요', '파일이 너무 커요. ‘나의 불꽃놀이’ 저장 파일이 맞는지 확인해 주세요.<br>기존 데이터는 그대로 유지했어요.'); return; }
+  let text; try { text = await f.text(); } catch (e) { await alertDlg('불러올 수 없어요', '파일을 읽지 못했어요. 기존 데이터는 그대로 유지했어요.'); return; }
+  handleImport(text, importMode);
+});
+async function handleImport(text, mode) {
+  let r;
+  try { r = parseImport(text); }
+  catch (e) { await alertDlg('불러올 수 없어요', `<p>${esc(e instanceof ImportError ? e.message : '파일을 확인하는 중 문제가 생겼어요.')}</p><p class="dim small">기존 데이터는 그대로 유지했어요.</p>`); return 'error'; }
+  const showOnly = mode === 'show' || r.kind === 'show';
+  const inc = showOnly ? { shows: r.data.shows, phrases: [], countdown: null } : r.data;
+  const when = r.exportedAt && !isNaN(Date.parse(r.exportedAt)) ? fmtDate(Date.parse(r.exportedAt)) : '알 수 없음';
+  let pv = `<p class="num">${r.kind === 'show' ? '쇼 파일' : '전체 백업 파일'} · 저장일 ${when}</p><p><b>내 쇼 ${inc.shows.length}개, 문구 ${inc.phrases.length}개</b>${!showOnly && inc.countdown ? ', 카운트다운 설정' : ''}${!showOnly && inc.settings ? ', 설정 포함' : ''}</p>`;
+  if (showOnly && inc.shows.length) pv += `<p class="small">${inc.shows.slice(0, 5).map(s => `‘${esc(s.name)}’ (불꽃 ${s.events.length}발)`).join(', ')}${inc.shows.length > 5 ? ' 외' : ''}</p>`;
+  if (mode === 'show' && r.kind !== 'show') pv += `<p class="small dim">전체 백업 파일이라 쇼만 가져와요.</p>`;
+  if (r.skipped) pv += `<p class="small dim">손상된 항목 ${r.skipped}개는 건너뛰어요.</p>`;
+  if (showOnly) {
+    if (!inc.shows.length) { await alertDlg('불러올 쇼가 없어요', '파일 안에 쇼가 없어요. 기존 데이터는 그대로 유지했어요.'); return 'error'; }
+    if (!await confirmDlg('쇼 불러오기', pv + '<p class="small dim">같은 쇼가 이미 있으면 더 최근에 수정된 쪽을 남겨요.</p>', '불러오기', '취소')) return 'cancel';
+    return doMerge(inc);
+  }
+  const v = await dialog({ title: '전체 불러오기', html: pv + '<p class="small dim"><b>합치기</b>: 지금 데이터를 그대로 두고 파일 내용을 더해요. 같은 항목은 더 최근에 수정된 쪽을 남겨요.<br><b>덮어쓰기</b>: 지금 데이터를 모두 파일 내용으로 바꿔요.</p>', buttons: [{ label: '취소', value: null }, { label: '덮어쓰기', value: 'over', kind: 'danger' }, { label: '합치기', value: 'merge', kind: 'primary' }] });
+  if (v === 'merge') return doMerge(inc);
+  if (v === 'over') {
+    if (!await confirmDlg('정말 덮어쓸까요?', `<p>지금 기기에 있는 <b>내 쇼 ${state.shows.length}개, 문구 ${state.phrases.length}개와 설정</b>이 파일 내용으로 바뀌어요.</p><p class="small dim">바로 전 데이터는 설정의 ‘자동 보관본’에 보관돼서 복원할 수 있어요.</p>`, '덮어쓰기', '취소', true)) return 'cancel';
+    return doOverwrite(r.data);
+  }
+  return 'cancel';
+}
+function stopIfMissing() { if (player.cur && !player.cur.builtin && !state.shows.some(s => s.id === player.cur.id)) player.stop(); }
+async function doMerge(inc) {
+  const cur = snapshotData();
+  const { out, added, updated, same, dup } = mergeInto(cur, inc);
+  out.settings = cur.settings;
+  try { commitData(out); }
+  catch (e) { await alertDlg('불러오기 실패', '저장하는 도중 문제가 생겨(저장 공간 부족 등) 불러오기 전 상태로 되돌렸어요.'); renderPage(); return 'rollback'; }
+  stopIfMissing(); renderPage(); refreshAuto();
+  const parts = [`새로 추가 ${added}개`, `업데이트 ${updated}개`]; if (same + dup) parts.push(`이미 있어서 건너뜀 ${same + dup}개`);
+  await alertDlg('불러오기 완료', `<p>${parts.join(', ')}</p>`);
+  return 'merged';
+}
+async function doOverwrite(d) {
+  pushBackup('덮어쓰기 불러오기 전');
+  const next = {
+    settings: d.settings ? { ...d.settings, warned: true } : { ...state.settings },
+    shows: d.shows, phrases: d.phrases,
+    countdown: d.countdown ? { ...d.countdown, active: d.countdown.active && new Date(d.countdown.target).getTime() > Date.now() } : defCountdown()
+  };
+  try { commitData(next); }
+  catch (e) { await alertDlg('불러오기 실패', '저장하는 도중 문제가 생겨 불러오기 전 상태로 되돌렸어요.'); return 'rollback'; }
+  player.stop(); applyAll(); renderPage();
+  await alertDlg('덮어쓰기 완료', `<p>내 쇼 ${d.shows.length}개, 문구 ${d.phrases.length}개로 바꿨어요.</p><p class="small dim">이전 데이터는 설정 › 자동 보관본에서 복원할 수 있어요.</p>`);
+  return 'overwritten';
+}
+async function restoreBackup(i) {
+  const b = state.backups[i]; if (!b) return;
+  if (!await confirmDlg('보관본 복원', `<p>${fmtDate(b.savedAt)}에 보관한 데이터(내 쇼 ${(b.data.shows || []).length}개, 문구 ${(b.data.phrases || []).length}개)로 바꿀까요?</p><p class="small dim">지금 데이터는 이 보관본 내용으로 바뀌어요.</p>`, '복원', '취소', true)) return;
+  const next = { settings: { ...sanitizeSettings(b.data.settings), warned: true }, shows: sanitizeList(b.data.shows, sanitizeShow) || [], phrases: sanitizeList(b.data.phrases, sanitizePhrase) || [], countdown: sanitizeCountdown(b.data.countdown) };
+  next.countdown.active = false;
+  try { commitData(next); } catch (e) { await alertDlg('복원 실패', '저장 중 문제가 생겨 이전 상태로 되돌렸어요.'); return; }
+  player.stop(); applyAll(); renderPage(); toast('보관본을 복원했어요');
+}
+async function wipeAll() {
+  if (!await confirmDlg('전체 삭제', '내 쇼, 저장한 문구, 카운트다운, 설정을 모두 지울까요?', '삭제', '취소', true)) return;
+  if (!await confirmDlg('정말 지울까요?', `<p>내 쇼 ${state.shows.length}개와 문구 ${state.phrases.length}개가 지워져요.</p><p class="small dim">지우기 직전 데이터는 ‘자동 보관본’에 남아서 복원할 수 있어요.</p>`, '모두 지우기', '취소', true)) return;
+  pushBackup('전체 삭제 전');
+  try { commitData({ settings: { ...DEF_SETTINGS, warned: true }, shows: [], phrases: [], countdown: defCountdown() }); }
+  catch (e) { await alertDlg('삭제 실패', '저장 중 문제가 생겨 이전 상태로 되돌렸어요.'); return; }
+  player.stop(); applyAll(); renderPage(); toast('모두 지웠어요');
+}
+
+/* ---------- 사진 저장 ---------- */
+async function savePhoto() {
+  showEdge();
+  try {
+    const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height;
+    const x = c.getContext('2d'); x.drawImage(cv, 0, 0);
+    const d = new Date();
+    if (S().photoDate) {
+      const fs = Math.round(clamp(W * .03, 11, 16) * DPR);
+      x.font = `600 ${fs}px ${FONT_STACK}`; x.textAlign = 'right'; x.textBaseline = 'bottom';
+      x.fillStyle = 'rgba(255,255,255,.72)'; x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 4 * DPR;
+      x.fillText(`${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`, c.width - 14 * DPR, c.height - 12 * DPR);
+    }
+    const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('blob')), 'image/png'));
+    const r = await shareOrDownload(blob, `불꽃놀이_${fmtDate(d, false)}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.png`, 'image/png', '나의 불꽃놀이');
+    if (r === 'cancel') toast('사진 저장을 취소했어요'); else toast(r === 'shared' ? '사진을 공유했어요' : '사진을 저장했어요');
+  } catch (e) { toast('사진을 저장하지 못했어요'); }
+}
+
+/* ---------- 전체 화면·화면 꺼짐 방지 ---------- */
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+function refreshFS() { const on = !!fsEl(); $('#fsBtn').innerHTML = ic(on ? 'unfull' : 'full'); $('#fsBtn').setAttribute('aria-label', on ? '전체 화면 끝내기' : '전체 화면'); $('#fsBtn').title = on ? '전체 화면 끝내기' : '전체 화면'; }
+function toggleFS() {
+  showEdge();
+  const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen, ex = document.exitFullscreen || document.webkitExitFullscreen;
+  const nope = () => toast('이 기기에서는 전체 화면을 지원하지 않아요. 홈 화면에 추가하면 전체 화면처럼 열려요');
+  try {
+    if (fsEl()) { const r = ex && ex.call(document); r && r.catch && r.catch(() => { }); }
+    else if (req) { const r = req.call(el); r && r.catch && r.catch(nope); }
+    else nope();
+  } catch (e) { nope(); }
+}
+document.addEventListener('fullscreenchange', refreshFS); document.addEventListener('webkitfullscreenchange', refreshFS);
+let wakeLock = null;
+async function requestWake() {
+  if (!S().wakeLock || wakeLock || document.hidden || !('wakeLock' in navigator)) return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { wakeLock = null; }
+}
+function releaseWake() { if (wakeLock) { try { wakeLock.release(); } catch (e) { } wakeLock = null; } }
+
+/* =========================================================
+   입력 · 루프 · 시작
+   ========================================================= */
+function userGesture() { sfx.unlock(); requestWake(); }
+function fireUser(x, y) {
+  const shot = resolveShot(S().type, S().palette, { scale: rand(.92, 1.08) });
+  recordShot(x, y, { type: shot.type, c1: shot.c1, c2: shot.c2 });
+  launch(x, y, shot);
+}
+const pointers = new Map();
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault(); userGesture(); showEdge();
+  try { cv.setPointerCapture(e.pointerId); } catch (_) { }
+  const p = { x: e.clientX, y: e.clientY, t: engineTime, last: engineTime };
+  pointers.set(e.pointerId, p); fireUser(p.x, p.y);
+});
+cv.addEventListener('pointermove', e => {
+  const p = pointers.get(e.pointerId); if (p) { p.x = e.clientX; p.y = e.clientY; }
+  if (e.pointerType === 'mouse' && finePointer) { const a = $('#aim'); a.style.transform = `translate(${e.clientX}px,${e.clientY}px)`; a.classList.add('on'); }
+});
+const endPtr = e => pointers.delete(e.pointerId);
+cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr); cv.addEventListener('lostpointercapture', endPtr);
+cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') $('#aim').classList.remove('on'); });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+for (const ev of ['pointerup', 'touchend', 'keydown']) window.addEventListener(ev, () => sfx.unlock(), { passive: true });
+
+/* 성능 자동 조절 */
+function setLevel(l) { l = clamp(l, 0, 2); if (l === level && W > 1) return; level = l; resize(); if (sheetPage === 'settings') renderPage(); }
+let rafId = 0, lastT = 0, fpsEMA = 60, lowT = 0, highT = 0, cool = 0, fpsAcc = 0, fpsN = 0, uiAcc = 0;
+function perf(real) {
+  if (real > .25) return; // 멈칫한 프레임은 무시
+  fpsEMA = fpsEMA * .93 + (1 / real) * .07;
+  fpsAcc += real; fpsN++;
+  if (fpsAcc >= .5) { if (S().showFps) $('#fps').textContent = `FPS ${Math.round(fpsN / fpsAcc)} · ${Q().name} · 입자 ${active.length}`; fpsAcc = 0; fpsN = 0; }
+  if (S().quality !== 'auto') return;
+  cool -= real;
+  if (fpsEMA < 42) { lowT += real; highT = 0; } else if (fpsEMA > 56) { highT += real; lowT = 0; } else { lowT = 0; highT = 0; }
+  if (lowT > 1.5 && level < 2) { setLevel(level + 1); lowT = 0; cool = 20; fpsEMA = 50; }
+  else if (highT > 12 && level > 0 && cool <= 0) { setLevel(level - 1); highT = 0; cool = 20; }
+}
+function frame(now) {
+  rafId = requestAnimationFrame(frame);
+  let real = (now - lastT) / 1000; lastT = now;
+  if (!(real > 0)) real = 1 / 60;
+  const dt = Math.min(real, .05); // 오래 멈췄다 돌아와도 한꺼번에 터지지 않게
+  perf(real);
+  player.update(dt);
+  for (const p of pointers.values()) if (engineTime - p.t > .35 && engineTime - p.last > .2) { p.last = engineTime; fireUser(p.x, p.y); }
+  update(dt);
+  render(now / 1000, dt);
+  uiAcc += dt; if (uiAcc > .25) { uiAcc = 0; updateRecTime(); }
+}
+function startLoop() { if (!rafId && !document.hidden) { lastT = performance.now(); rafId = requestAnimationFrame(frame); } }
+function stopLoop() { if (rafId) cancelAnimationFrame(rafId); rafId = 0; }
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopLoop(); pointers.clear();
+    if (sfx.ctx && sfx.ctx.state === 'running') sfx.ctx.suspend().catch(() => { });
+  } else {
+    startLoop();
+    if (sfx.ctx && S().sound) sfx.ctx.resume().catch(() => { });
+    requestWake(); cdTick();
+  }
+});
+setInterval(() => { if (!document.hidden) cdTick(); }, 250);
+try { new ResizeObserver(() => resize()).observe(cv); } catch (e) { }
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 120));
+try { prm.addEventListener('change', () => { if (sheetPage === 'settings') renderPage(); }); } catch (e) { }
+
+/* ---------- 시작 ---------- */
+async function boot() {
+  applyTheme(); buildBar();
+  if (S().quality !== 'auto') level = { high: 0, normal: 1, eco: 2 }[S().quality];
+  resize();
+  $('#fps').hidden = !S().showFps;
+  history.replaceState({ nfw: 'root' }, ''); history.pushState({ nfw: 'main' }, '');
+  save('meta');
+  startLoop(); showEdge();
+  if (!storageOK) toast('이 브라우저에서는 저장이 되지 않아요. 앱을 닫으면 내 쇼가 사라질 수 있어요', { duration: 5000 });
+  else if (startupNotices.length) toast('저장된 데이터 일부가 손상되어 기본값으로 시작했어요', { duration: 5000 });
+  if (!S().warned) {
+    const v = await dialog({
+      title: '⚠️ 깜빡이는 빛이 나옵니다',
+      html: `<p>이 앱은 밝게 번쩍이고 깜빡이는 불꽃 효과를 보여줘요. 빛에 민감하거나 광과민성 발작 경험이 있다면 주의해 주세요.</p><p class="small dim">설정에서 언제든 ‘섬광 효과 줄이기’를 켜고 끌 수 있어요.${prm.matches ? ' 기기의 ‘동작 줄이기’가 켜져 있어 섬광과 움직임을 자동으로 줄여요.' : ''}</p>`,
+      buttons: [{ label: '섬광 줄이고 시작', value: 'reduce' }, { label: '시작하기', value: 'ok', kind: 'primary' }]
+    });
+    if (v === 'reduce') setSetting('reduceFlash', true);
+    setSetting('warned', true); userGesture();
+    toast('화면을 눌러 불꽃을 쏘아 보세요', { soft: true });
+  } else toast('화면을 눌러 불꽃을 쏘아 보세요', { soft: true });
+  if (state.countdown.active) {
+    if (cdTarget() <= Date.now()) { cdFired = true; cdFinish(); askLateStart(); } else cdTick();
+  }
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('./sw.js').catch(() => { /* 실패해도 앱은 그대로 동작 */ });
+  }
+}
+boot();
+</script>
+</body>
+</html>
